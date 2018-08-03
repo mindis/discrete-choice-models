@@ -13,3 +13,5 @@
 - The data needs to be saved as .rds format and in long format. This can also be changed in the fn.setup.data()
 
 - The parameter order is as follows: means class1, means class 2, ..., sds class1, sds class2, ..., 
+
+- The model allows the parameter distributions to be correlated or uncorrelated and interactions with the means to be either generic or class specific
