@@ -68,7 +68,7 @@ fn.log.lik <- function(v.param){
         v[is.na(v)] <- 0; as.vector(v)
     })
     ls.prob.chosen <- mapply('*', ls.prob.alt, ls.Y, SIMPLIFY = FALSE)
-    m.prob.chosen <- as.matrix(Reduce('+', ls.prob.chosen))
+    m.prob.chosen <- Reduce('+', ls.prob.chosen)
     m.prob.chosen <- matrix(m.prob.chosen, nrow = Estim.Opt$i.tasks)
     
     ############################################################################
