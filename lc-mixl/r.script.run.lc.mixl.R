@@ -234,8 +234,13 @@ Estim.Opt$ls.rand.par <- list(x4 = "-ln", x3 = "n", x2 = "n", x1 = "n")
 ##  interacted with socio-demographic variables.
 ##
 ##  If no parameter distributions have interactions - leave empty: list()
+##
+##  'b.class.specific'  Only used for LC-MIXL. If TRUE - class specific
+##                      interactoins. If FALSE - assumed to be the same across
+##                      classes.
 ################################################################################
 Estim.Opt$ls.het.par <-  list(x3 = c("male", "age"), x2 = c("male"))
+Estim.Opt$b.class.specific <- TRUE
 
 ################################################################################
 ##  Specify whether we are estimating relative scale parameters

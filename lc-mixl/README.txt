@@ -12,4 +12,4 @@
 
 - The data needs to be saved as .rds format and in long format. This can also be changed in the fn.setup.data()
 
-- The parameter order is as follows: means class1, sds class1, means class 2, sds class2, ..., 
+- The parameter order is as follows: means class1, means class 2, ..., sds class1, sds class2, ..., 
