@@ -60,7 +60,7 @@ source("../methods/r.script.methods.miscellaneous.R")
 source("../methods/r.script.methods.run.R")
 source("../methods/r.script.methods.summary.R")
 source("../methods/r.script.methods.parallel.R")
-source("r.script.ll.lc.R")
+source("r.script.ll.lc.mnl.R")
 
 ################################################################################
 ##  Set up a list of options that controls how the model runs
