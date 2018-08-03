@@ -239,7 +239,7 @@ Estim.Opt$ls.rand.par <- list(x4 = "-ln", x3 = "n", x2 = "n", x1 = "n")
 ##                      interactoins. If FALSE - assumed to be the same across
 ##                      classes.
 ################################################################################
-Estim.Opt$ls.het.par <-  list(x3 = c("male", "age"), x2 = c("male"))
+Estim.Opt$ls.het.par <-  list()
 Estim.Opt$b.class.specific <- TRUE
 
 ################################################################################
@@ -292,7 +292,7 @@ Estim.Opt$d.multiplier <- 1.5
 Estim.Opt$i.seed <- 57888385L
 
 ##  Vector of starting values the length of the number of parameters
-v.param <- c(rep(0, 4), rep(0.1, 4), rep(0, 3))
+v.param <- c(rep(0, 8), rep(0.1, 8), 0.5)
 
 ################################################################################
 ### Start running the model
