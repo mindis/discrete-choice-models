@@ -1,35 +1,106 @@
 ################################################################################
-##  Name:         r.script.ll.mixl.R
-##  Created:      2018.08.02
-##  Last edited:  2018.08.02
+##  Name:         r.script.ll.lc.mixl.R
+##  Created:      2018.08.03
+##  Last edited:  2018.08.04
 ##  Author:       Erlend Dancke Sandorf
 ##  Contributors: N/A
 ################################################################################
 
 fn.log.lik <- function(v.param){
-    ##  Get the parameters
-    v.beta.r <- v.param[ls.str.par.names[["str.mean"]]]
-    v.sigma.r <- v.param[ls.str.par.names[["str.std"]]]
+    ############################################################################
+    ##  Class probability function
+    ############################################################################
+    ##  Zeros are added for the normalizing class
+    v.theta <- c(v.param[ls.str.par.names[["str.class"]]],
+                 rep(0L, length(Estim.Opt$str.class.par)))
+    
+    ls.class.prob <- lapply(seq_along(ls.C), function(i.x){
+        i.K <- length(Estim.Opt$str.class.par)
+        i.start <- 1L + (i.K * (i.x - 1L))
+        i.end <- i.K * i.x
+        ##  IND*CT
+        exp(crossprod(t(ls.C[[i.x]]), v.theta[i.start:i.end]))
+    })
+    
+    ##  Calculate the probability - Vector IND*CT
+    v.class.prob.sum <- Reduce("+", ls.class.prob)
+    ls.class.prob <- lapply(ls.class.prob, function(v.x){
+        v.prob <- v.x / v.class.prob.sum
+        v.prob[is.na(v.prob)] <- 0
+        as.vector(v.prob)
+    })
+    
+    ##  IND*CT x CLASSES
+    m.class.prob <- Reduce(cbind, ls.class.prob)
+    ##  CT x IND*CLASSES
+    m.class.prob <- matrix(as.vector(m.class.prob), nrow = Estim.Opt$i.tasks)
     
     ############################################################################
-    ##  Make the betas IND*DRAWS x NVAR
+    rm(v.theta, ls.class.prob, v.class.prob.sum)
     ############################################################################
-    m.beta <- fn.make.beta(Estim.Opt, v.beta.r, v.sigma.r, m.draws)
+    
+    ############################################################################
+    ##  Make a list of length equal to i.Q containing the betas IND*DRAWS x NVAR
+    ############################################################################
+    i.Q <- Estim.Opt$i.classes
+    str.tmp <- names(Estim.Opt$ls.rand.par)
+    m.beta.r <- matrix(v.param[ls.str.par.names[["str.mean"]]], ncol = i.Q)
+    m.sigma.r <- matrix(v.param[ls.str.par.names[["str.std"]]], ncol = i.Q)
+    rownames(m.beta.r) <- rownames(m.sigma.r) <- paste0("beta.", str.tmp)
+    
+    ##  IND*DRAWS x NVAR
+    ls.beta <- lapply(seq_len(i.Q), function(i.x){
+        i.K <- nrow(m.beta.r)
+        i.start <- 1 + (i.x - 1) * i.K
+        i.end <- i.x * i.K
+        m.beta <- fn.make.beta(Estim.Opt, m.beta.r[, i.x], m.sigma.r[, i.x],
+                               m.draws[, i.start:i.end])
+        return(m.beta)
+    })
+    
+    ############################################################################
+    rm(m.beta.r, m.sigma.r, i.Q, str.tmp)
+    ############################################################################
     
     ############################################################################
     ##  Interactions with the means m.H -- IND*DRAWS x NVAR
     ############################################################################
     if(length(Estim.Opt$ls.het.par) > 0){
-        v.phi <- v.param[ls.str.par.names[["str.het"]]]
-        for(i in seq_along(Estim.Opt$ls.het.par)){
-            str.tmp <- names(Estim.Opt$ls.het.par[i])
-            v.phi.tmp <- v.phi[grep(str.tmp, names(v.phi))]
-            ##  Multiply data with parameters
-            m.tmp <- crossprod(t(m.H[, Estim.Opt$ls.het.par[[i]]]), v.phi.tmp)
-            if(Estim.Opt$ls.rand.par[[str.tmp]] %in% c("-ln", "ln")){
-                m.beta[, str.tmp] <- m.beta[, str.tmp] * exp(m.tmp)
-            } else{
-                m.beta[, str.tmp] <- m.beta[, str.tmp] + m.tmp
+        if(Estim.Opt$b.class.specific){
+            i.tmp <- length(ls.str.par.names[["str.het"]]) / Estim.Opt$i.classes
+            ##  Different for each class
+            for(j in seq_along(ls.beta)){
+                i.start <- 1 + (1 - j) * i.tmp
+                i.end <- i.tmp * j
+                v.phi <- v.param[ls.str.par.names[["str.het"]][i.start:i.end]]
+                for(i in seq_along(Estim.Opt$ls.het.par)){
+                    str.tmp <- names(Estim.Opt$ls.het.par[i])
+                    v.phi.tmp <- v.phi[grep(str.tmp, names(v.phi))]
+                    v.tmp <- crossprod(t(m.H[, Estim.Opt$ls.het.par[[i]]]), v.phi.tmp)
+                    if(Estim.Opt$ls.rand.par[[str.tmp]] %in% c("-ln", "ln")){
+                        ls.beta[[j]][, str.tmp] <- ls.beta[[j]][, str.tmp] * exp(v.tmp)
+                    } else{
+                        ls.beta[[j]][, str.tmp] <- ls.beta[[j]][, str.tmp] + v.tmp
+                    }
+                }
+            }
+        } else{
+            ##  Same for all classes
+            v.phi <- v.param[ls.str.par.names[["str.het"]]]
+            for(i in seq_along(Estim.Opt$ls.het.par)){
+                str.tmp <- names(Estim.Opt$ls.het.par[i])
+                ##  This might be problematic with partial matching?
+                v.phi.tmp <- v.phi[grep(str.tmp, names(v.phi))]
+                ##  Multiply data with the parameters
+                v.tmp <- crossprod(t(m.H[, Estim.Opt$ls.het.par[[i]]]), v.phi.tmp)
+                ##  Multiply with the betas
+                for(j in seq_along(ls.beta)){
+                    if(Estim.Opt$ls.rand.par[[str.tmp]] %in% c("-ln", "ln")){
+                        ls.beta[[j]][, str.tmp] <- ls.beta[[j]][, str.tmp] * exp(v.tmp)
+                    } else{
+                        ls.beta[[j]][, str.tmp] <- ls.beta[[j]][, str.tmp] + v.tmp
+                    }
+                }
             }
         }
     }
@@ -39,10 +110,12 @@ fn.log.lik <- function(v.param){
     ##  fixed parameters
     ############################################################################
     if(Estim.Opt$b.wtp.space){
-        v.cost <- m.beta[, Estim.Opt$str.cost]
-        m.beta[, Estim.Opt$str.cost] <- 1L
-        ##  IND*DRAWS x NVAR
-        m.beta <- m.beta * v.cost
+        for(i in seq_along(ls.beta)){
+            v.cost <- ls.beta[[i]][, Estim.Opt$str.cost]
+            ls.beta[[i]][, Estim.Opt$str.cost] <- 1L
+            ##  IND*DRAWS x NVAR
+            ls.beta[[i]] <- ls.beta[[i]] * v.cost
+        }
     }
     
     ############################################################################
@@ -56,18 +129,24 @@ fn.log.lik <- function(v.param){
     
     i.T <- Estim.Opt$i.tasks
     i.D <- Estim.Opt$i.draws
-    i.ind <- nrow(ls.X.r[[1L]]) / i.T
     
-    ls.utility <- lapply(seq_len(Estim.Opt$i.alts), function(i.x){
-        matrix(NA, nrow(ls.X.r[[1L]]), Estim.Opt$i.draws)
+    ##  Create list of lists
+    ls.utility <- vector(mode = "list", length = Estim.Opt$i.classes)
+    ls.utility <- lapply(ls.utility, function(x){
+        ls.tmp <- lapply(seq_len(Estim.Opt$i.alts), function(i.x){
+            matrix(NA, nrow = nrow(ls.X.r[[1L]]), ncol = Estim.Opt$i.draws)
+        })
+        return(ls.tmp)
     })
     
     ##  IND*CT x DRAWS
-    for(i.i in 1L:i.ind){
-        v.rows <- (1L + ((i.i - 1L) * i.T)):(i.i * i.T)
-        for(i.j in 1L:Estim.Opt$i.alts){
-            ls.utility[[i.j]][v.rows, ] <- tcrossprod(ls.X.r[[i.j]][v.rows, , drop = FALSE],
-                                                      m.beta[(1L + ((i.i - 1L) * i.D)):(i.i * i.D), ])
+    for(i.c in 1L:Estim.Opt$i.classes){
+        for(i.i in 1L:i.ind){
+            v.rows <- (1L + ((i.i - 1L) * i.T)):(i.i * i.T)
+            for(i.j in 1L:Estim.Opt$i.alts){
+                ls.utility[[i.c]][[i.j]][v.rows, ] <- tcrossprod(ls.X.r[[i.j]][v.rows, , drop = FALSE],
+                                                          ls.beta[[i.c]][(1L + ((i.i - 1L) * i.D)):(i.i * i.D), ])
+            }
         }
     }
     
