@@ -40,7 +40,7 @@ fn.log.lik <- function(v.param){
     ############################################################################
     
     ############################################################################
-    ##  Calculate the fixed part of utility
+    ##  Set up the matrix of betas
     ############################################################################
     m.beta.f <- matrix(v.param[ls.str.par.names[["str.fixed"]]],
                        ncol = Estim.Opt$i.classes)

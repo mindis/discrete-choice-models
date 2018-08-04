@@ -129,6 +129,7 @@ fn.log.lik <- function(v.param){
     
     i.T <- Estim.Opt$i.tasks
     i.D <- Estim.Opt$i.draws
+    i.ind <- nrow(ls.X.r[[1L]]) / i.T
     
     ##  Create list of lists
     ls.utility <- vector(mode = "list", length = Estim.Opt$i.classes)
@@ -154,16 +155,19 @@ fn.log.lik <- function(v.param){
     ##  Calculate the fixed part of utility
     ############################################################################
     if(length(Estim.Opt$str.fixed.par) > 0){
-        v.beta.f <- v.param[ls.str.par.names[["str.fixed"]]]
+        m.beta.f <- matrix(v.param[ls.str.par.names[["str.fixed"]]],
+                           ncol = Estim.Opt$i.classes)
+        rownames(m.beta.f) <- Estim.Opt$str.fixed.par
+        
         ls.X.f <- lapply(ls.X, function(m.x){
             ##  IND*CT x NVAR
             m.x[, Estim.Opt$str.fixed.par, drop = FALSE]
         })
         
         ls.utility.f <- lapply(ls.X.f, function(m.x){
-            v.u <- as.vector(crossprod(t(m.x), v.beta.f))
-            ##  IND*CT
-            return(v.u)
+            m.u <- tcrossprod(m.x, t(v.beta.f))
+            ##  IND*CT x CLASSES
+            return(m.u)
         })
         
         ## IND*CT x DRAWS
