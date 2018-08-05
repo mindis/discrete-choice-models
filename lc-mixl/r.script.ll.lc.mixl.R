@@ -65,10 +65,9 @@ fn.log.lik <- function(v.param){
     ############################################################################
     ##  Interactions with the means m.H -- IND*DRAWS x NVAR
     ############################################################################
-    if(length(Estim.Opt$ls.het.par) > 0){
+    if(length(Estim.Opt$ls.het.par) > 0L){
         if(Estim.Opt$b.class.specific){
             i.tmp <- length(ls.str.par.names[["str.het"]]) / Estim.Opt$i.classes
-            ##  Different for each class
             for(j in seq_along(ls.beta)){
                 i.start <- 1 + (1 - j) * i.tmp
                 i.end <- i.tmp * j
@@ -84,17 +83,13 @@ fn.log.lik <- function(v.param){
                     }
                 }
             }
-        } else{
-            ##  Same for all classes
+        } else {
             v.phi <- v.param[ls.str.par.names[["str.het"]]]
-            for(i in seq_along(Estim.Opt$ls.het.par)){
-                str.tmp <- names(Estim.Opt$ls.het.par[i])
-                ##  This might be problematic with partial matching?
-                v.phi.tmp <- v.phi[grep(str.tmp, names(v.phi))]
-                ##  Multiply data with the parameters
-                v.tmp <- crossprod(t(m.H[, Estim.Opt$ls.het.par[[i]]]), v.phi.tmp)
-                ##  Multiply with the betas
-                for(j in seq_along(ls.beta)){
+            for(j in seq_along(ls.beta)){
+                for(i in seq_along(Estim.Opt$ls.het.par)){
+                    str.tmp <- names(Estim.Opt$ls.het.par[[i]])
+                    v.phi.tmp <- v.phi[grep(str.tmp, names(v.phi))]
+                    v.tmp <- crossprod(t(m.H[, Estim.Opt$ls.het.par[[i]]]), v.phi.tmp)
                     if(Estim.Opt$ls.rand.par[[str.tmp]] %in% c("-ln", "ln")){
                         ls.beta[[j]][, str.tmp] <- ls.beta[[j]][, str.tmp] * exp(v.tmp)
                     } else{
@@ -104,7 +99,7 @@ fn.log.lik <- function(v.param){
             }
         }
     }
-    
+
     ############################################################################
     ##  Check if we are calculating utility in WTP space -- does not work with 
     ##  fixed parameters
@@ -141,12 +136,12 @@ fn.log.lik <- function(v.param){
     })
     
     ##  IND*CT x DRAWS
-    for(i.c in 1L:Estim.Opt$i.classes){
-        for(i.i in 1L:i.ind){
-            v.rows <- (1L + ((i.i - 1L) * i.T)):(i.i * i.T)
+    for(j in seq_along(ls.beta)){
+        for(i in seq_len(i.ind)){
+            v.rows <- (1L + ((i - 1L) * i.T)):(i * i.T)
             for(i.j in 1L:Estim.Opt$i.alts){
-                ls.utility[[i.c]][[i.j]][v.rows, ] <- tcrossprod(ls.X.r[[i.j]][v.rows, , drop = FALSE],
-                                                          ls.beta[[i.c]][(1L + ((i.i - 1L) * i.D)):(i.i * i.D), ])
+                ls.utility[[j]][[i.j]][v.rows, ] <- tcrossprod(ls.X.r[[i.j]][v.rows, , drop = FALSE],
+                                                          ls.beta[[j]][(1L + ((i - 1L) * i.D)):(i * i.D), ])
             }
         }
     }
@@ -170,10 +165,12 @@ fn.log.lik <- function(v.param){
             return(m.u)
         })
         
-        ## IND*CT x DRAWS
-        ls.utility <- mapply(function(m.x, m.y){m.x + m.y},
-                             ls.utility, ls.utility.f, SIMPLIFY = FALSE)
-        
+        ## IND*CT x DRAWS 
+        for(j in seq_along(ls.beta)){ ## The mapply function needs some thinking - This does not work yet
+            ls.utility[[j]] <- mapply(function(m.x, m.y){m.x + m.y},
+                                      ls.utility[[j]], ls.utility.f[[]][, j, drop = FALSE])
+        }
+
         ########################################################################
         rm(ls.X.f, ls.utility.f)
         ########################################################################
@@ -189,10 +186,12 @@ fn.log.lik <- function(v.param){
         v.scale <- as.vector(v.scale)
         
         ## IND*CT x DRAWS
-        ls.utility <- lapply(ls.utility, function(m.x){
-            return(m.x * v.scale)
-        })
-        
+        for(j in seq_along(ls.beta)){
+            ls.utility[[j]] <- lapply(ls.utility[[j]], function(m.x){
+                return(m.x * v.scale)
+            })
+        }
+
         ########################################################################
         rm(v.scale)
         ########################################################################
@@ -202,10 +201,12 @@ fn.log.lik <- function(v.param){
     ##  Rescale utility
     ############################################################################
     if(Estim.Opt$b.rescale.utility){
-        m.utility.max <- Reduce(pmax, ls.utility)
-        m.utility.min <- Reduce(pmin, ls.utility)
-        m.utility.mid <- (m.utility.max + m.utility.min) / 2L
-        ls.utility <- lapply(ls.utility, function(m.x){m.x - m.utility.mid})
+        for(j in seq_along(ls.beta)){
+            m.utility.max <- Reduce(pmax, ls.utility[[j]])
+            m.utility.min <- Reduce(pmin, ls.utility[[j]])
+            m.utility.mid <- (m.utility.max + m.utility.min) / 2L
+            ls.utility[[j]] <- lapply(ls.utility[[j]], function(m.x){m.x - m.utility.mid})
+        }
         
         ########################################################################
         rm(m.utility.max, m.utility.min, m.utility.mid)
@@ -215,6 +216,7 @@ fn.log.lik <- function(v.param){
     ############################################################################
     ##  Calculating the probability of the chosen alternative
     ############################################################################
+    ##  I think this is where I can add a lsit to store the m.prob chosens and just loop over...
     ls.exp.utility <- lapply(ls.utility, function(m.x) exp(m.x))
     m.sum.utility <- Reduce("+", ls.exp.utility)
     ls.prob.alt <- lapply(ls.exp.utility, function(m.x) m.x /m.sum.utility)
