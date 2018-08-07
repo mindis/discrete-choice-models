@@ -87,7 +87,7 @@ fn.log.lik <- function(v.param){
             v.phi <- v.param[ls.str.par.names[["str.het"]]]
             for(q in seq_along(ls.beta)){
                 for(i in seq_along(Estim.Opt$ls.het.par)){
-                    str.tmp <- names(Estim.Opt$ls.het.par[[i]])
+                    str.tmp <- names(Estim.Opt$ls.het.par[i])
                     v.phi.tmp <- v.phi[grep(str.tmp, names(v.phi))]
                     v.tmp <- crossprod(t(m.H[, Estim.Opt$ls.het.par[[i]]]), v.phi.tmp)
                     if(Estim.Opt$ls.rand.par[[str.tmp]] %in% c("-ln", "ln")){
