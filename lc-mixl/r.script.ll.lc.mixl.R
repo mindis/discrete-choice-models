@@ -69,7 +69,7 @@ fn.log.lik <- function(v.param){
         if(Estim.Opt$b.class.specific){
             i.tmp <- length(ls.str.par.names[["str.het"]]) / Estim.Opt$i.classes
             for(q in seq_along(ls.beta)){
-                i.start <- 1 + (1 - q) * i.tmp
+                i.start <- 1L + (q - 1L) * i.tmp
                 i.end <- i.tmp * q
                 v.phi <- v.param[ls.str.par.names[["str.het"]][i.start:i.end]]
                 for(i in seq_along(Estim.Opt$ls.het.par)){
@@ -160,7 +160,7 @@ fn.log.lik <- function(v.param){
         })
         
         ls.utility.f <- lapply(ls.X.f, function(m.x){
-            m.u <- tcrossprod(m.x, t(v.beta.f))
+            m.u <- tcrossprod(m.x, t(m.beta.f))
             ##  IND*CT x CLASSES
             return(m.u)
         })
@@ -233,7 +233,7 @@ fn.log.lik <- function(v.param){
     }
     
     ############################################################################
-    rm(ls.exp.utility, m.sum.utility, ls.prob.alt)
+    # rm(ls.exp.utility, m.sum.utility, ls.prob.alt)
     ############################################################################
     
     ############################################################################
