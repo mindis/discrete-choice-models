@@ -49,11 +49,11 @@ fn.log.lik <- function(v.param){
     rownames(m.beta.r) <- rownames(m.sigma.r) <- paste0("beta.", str.tmp)
     
     ##  IND*DRAWS x NVAR
-    ls.beta <- lapply(seq_len(i.Q), function(i.x){
+    ls.beta <- lapply(seq_len(i.Q), function(i.q){
         i.K <- nrow(m.beta.r)
-        i.start <- 1 + (i.x - 1) * i.K
-        i.end <- i.x * i.K
-        m.beta <- fn.make.beta(Estim.Opt, m.beta.r[, i.x], m.sigma.r[, i.x],
+        i.start <- 1 + (i.q - 1) * i.K
+        i.end <- i.q * i.K
+        m.beta <- fn.make.beta(Estim.Opt, m.beta.r[, i.q], m.sigma.r[, i.q],
                                m.draws[, i.start:i.end])
         return(m.beta)
     })
@@ -68,32 +68,32 @@ fn.log.lik <- function(v.param){
     if(length(Estim.Opt$ls.het.par) > 0L){
         if(Estim.Opt$b.class.specific){
             i.tmp <- length(ls.str.par.names[["str.het"]]) / Estim.Opt$i.classes
-            for(j in seq_along(ls.beta)){
-                i.start <- 1 + (1 - j) * i.tmp
-                i.end <- i.tmp * j
+            for(q in seq_along(ls.beta)){
+                i.start <- 1 + (1 - q) * i.tmp
+                i.end <- i.tmp * q
                 v.phi <- v.param[ls.str.par.names[["str.het"]][i.start:i.end]]
                 for(i in seq_along(Estim.Opt$ls.het.par)){
                     str.tmp <- names(Estim.Opt$ls.het.par[i])
                     v.phi.tmp <- v.phi[grep(str.tmp, names(v.phi))]
                     v.tmp <- crossprod(t(m.H[, Estim.Opt$ls.het.par[[i]]]), v.phi.tmp)
                     if(Estim.Opt$ls.rand.par[[str.tmp]] %in% c("-ln", "ln")){
-                        ls.beta[[j]][, str.tmp] <- ls.beta[[j]][, str.tmp] * exp(v.tmp)
+                        ls.beta[[q]][, str.tmp] <- ls.beta[[q]][, str.tmp] * exp(v.tmp)
                     } else{
-                        ls.beta[[j]][, str.tmp] <- ls.beta[[j]][, str.tmp] + v.tmp
+                        ls.beta[[q]][, str.tmp] <- ls.beta[[q]][, str.tmp] + v.tmp
                     }
                 }
             }
         } else {
             v.phi <- v.param[ls.str.par.names[["str.het"]]]
-            for(j in seq_along(ls.beta)){
+            for(q in seq_along(ls.beta)){
                 for(i in seq_along(Estim.Opt$ls.het.par)){
                     str.tmp <- names(Estim.Opt$ls.het.par[[i]])
                     v.phi.tmp <- v.phi[grep(str.tmp, names(v.phi))]
                     v.tmp <- crossprod(t(m.H[, Estim.Opt$ls.het.par[[i]]]), v.phi.tmp)
                     if(Estim.Opt$ls.rand.par[[str.tmp]] %in% c("-ln", "ln")){
-                        ls.beta[[j]][, str.tmp] <- ls.beta[[j]][, str.tmp] * exp(v.tmp)
+                        ls.beta[[q]][, str.tmp] <- ls.beta[[q]][, str.tmp] * exp(v.tmp)
                     } else{
-                        ls.beta[[j]][, str.tmp] <- ls.beta[[j]][, str.tmp] + v.tmp
+                        ls.beta[[q]][, str.tmp] <- ls.beta[[q]][, str.tmp] + v.tmp
                     }
                 }
             }
@@ -105,11 +105,11 @@ fn.log.lik <- function(v.param){
     ##  fixed parameters
     ############################################################################
     if(Estim.Opt$b.wtp.space){
-        for(i in seq_along(ls.beta)){
-            v.cost <- ls.beta[[i]][, Estim.Opt$str.cost]
-            ls.beta[[i]][, Estim.Opt$str.cost] <- 1L
+        for(q in seq_along(ls.beta)){
+            v.cost <- ls.beta[[q]][, Estim.Opt$str.cost]
+            ls.beta[[q]][, Estim.Opt$str.cost] <- 1L
             ##  IND*DRAWS x NVAR
-            ls.beta[[i]] <- ls.beta[[i]] * v.cost
+            ls.beta[[q]] <- ls.beta[[q]] * v.cost
         }
     }
     
@@ -129,19 +129,19 @@ fn.log.lik <- function(v.param){
     ##  Create list of lists
     ls.utility <- vector(mode = "list", length = Estim.Opt$i.classes)
     ls.utility <- lapply(ls.utility, function(x){
-        ls.tmp <- lapply(seq_len(Estim.Opt$i.alts), function(i.x){
+        ls.tmp <- lapply(seq_len(Estim.Opt$i.alts), function(i.j){
             matrix(NA, nrow = nrow(ls.X.r[[1L]]), ncol = Estim.Opt$i.draws)
         })
         return(ls.tmp)
     })
     
     ##  IND*CT x DRAWS
-    for(j in seq_along(ls.beta)){
+    for(q in seq_along(ls.beta)){
         for(i in seq_len(i.ind)){
             v.rows <- (1L + ((i - 1L) * i.T)):(i * i.T)
-            for(i.j in 1L:Estim.Opt$i.alts){
-                ls.utility[[j]][[i.j]][v.rows, ] <- tcrossprod(ls.X.r[[i.j]][v.rows, , drop = FALSE],
-                                                          ls.beta[[j]][(1L + ((i - 1L) * i.D)):(i * i.D), ])
+            for(j in 1L:Estim.Opt$i.alts){
+                ls.utility[[q]][[j]][v.rows, ] <- tcrossprod(ls.X.r[[j]][v.rows, , drop = FALSE],
+                                                          ls.beta[[q]][(1L + ((i - 1L) * i.D)):(i * i.D), ])
             }
         }
     }
@@ -166,9 +166,13 @@ fn.log.lik <- function(v.param){
         })
         
         ## IND*CT x DRAWS 
-        for(j in seq_along(ls.beta)){ ## The mapply function needs some thinking - This does not work yet
-            ls.utility[[j]] <- mapply(function(m.x, m.y){m.x + m.y},
-                                      ls.utility[[j]], ls.utility.f[[]][, j, drop = FALSE])
+        for(q in seq_along(ls.beta)){ ## The mapply function needs some thinking - This does not work yet
+            ls.utility[[q]] <- mapply(function(m.x, m.y){m.x + m.y},
+                                      ls.utility[[q]], lapply(ls.utility.f,
+                                                              function(m.x){
+                                                                  return(m.x[, q])
+                                                                  }),
+                                      SIMPLIFY = FALSE)
         }
 
         ########################################################################
@@ -186,8 +190,8 @@ fn.log.lik <- function(v.param){
         v.scale <- as.vector(v.scale)
         
         ## IND*CT x DRAWS
-        for(j in seq_along(ls.beta)){
-            ls.utility[[j]] <- lapply(ls.utility[[j]], function(m.x){
+        for(q in seq_along(ls.beta)){
+            ls.utility[[q]] <- lapply(ls.utility[[q]], function(m.x){
                 return(m.x * v.scale)
             })
         }
@@ -201,11 +205,11 @@ fn.log.lik <- function(v.param){
     ##  Rescale utility
     ############################################################################
     if(Estim.Opt$b.rescale.utility){
-        for(j in seq_along(ls.beta)){
-            m.utility.max <- Reduce(pmax, ls.utility[[j]])
-            m.utility.min <- Reduce(pmin, ls.utility[[j]])
+        for(q in seq_along(ls.beta)){
+            m.utility.max <- Reduce(pmax, ls.utility[[q]])
+            m.utility.min <- Reduce(pmin, ls.utility[[q]])
             m.utility.mid <- (m.utility.max + m.utility.min) / 2L
-            ls.utility[[j]] <- lapply(ls.utility[[j]], function(m.x){m.x - m.utility.mid})
+            ls.utility[[q]] <- lapply(ls.utility[[q]], function(m.x){m.x - m.utility.mid})
         }
         
         ########################################################################
@@ -216,40 +220,58 @@ fn.log.lik <- function(v.param){
     ############################################################################
     ##  Calculating the probability of the chosen alternative
     ############################################################################
-    ##  I think this is where I can add a lsit to store the m.prob chosens and just loop over...
-    ls.exp.utility <- lapply(ls.utility, function(m.x) exp(m.x))
-    m.sum.utility <- Reduce("+", ls.exp.utility)
-    ls.prob.alt <- lapply(ls.exp.utility, function(m.x) m.x /m.sum.utility)
-    ls.prob.chosen <- mapply("*", ls.prob.alt, ls.Y, SIMPLIFY = FALSE)
-    ##  IND*CT x DRAWS
-    m.prob.chosen <- Reduce("+", ls.prob.chosen)
-    m.prob.chosen <- matrix(m.prob.chosen, nrow = Estim.Opt$i.tasks)
+    ls.prob.chosen <- vector(mode = "list", length = Estim.Opt$i.classes)
+    for(q in seq_along(ls.prob.chosen)){
+        ls.exp.utility <- lapply(ls.utility[[q]], function(m.x) exp(m.x))
+        m.sum.utility <- Reduce("+", ls.exp.utility)
+        ls.prob.alt <- lapply(ls.exp.utility, function(m.x) m.x/m.sum.utility)
+        ls.prob.chosen.tmp <- mapply("*", ls.prob.alt, ls.Y, SIMPLIFY = FALSE)
+        ## IND*CT x DRAWS
+        m.prob.chosen <- Reduce("+", ls.prob.chosen.tmp)
+        ##  CT x IND*DRAWS
+        ls.prob.chosen[[q]] <- matrix(m.prob.chosen, nrow = Estim.Opt$i.tasks)
+    }
     
     ############################################################################
-    rm(ls.exp.utility, m.sum.utility, ls.prob.alt, ls.prob.chosen)
+    rm(ls.exp.utility, m.sum.utility, ls.prob.alt)
     ############################################################################
     
     ############################################################################
     ##  Check whether the data was complete
     ############################################################################
     if(!Estim.Opt$b.complete.data){
-        if(any(is.nan(m.prob.chosen))){
-            m.tmp <- as.logical(is.na(m.prob.chosen) - is.nan(m.prob.chosen))
-            m.prob.chosen[m.tmp] <- 1L
+        for(q in seq_along(ls.prob.chosen)){
+            m.tmp <- ls.prob.chosen[[q]]
+            if(any(is.nan(m.prob.chosen))){
+                m.log <- as.logical(is.na(m.tmp) - is.nan(m.tmp))
+                ls.prob.chosen[[1]][m.log] <- 1L
+                rm(m.log)
+            } else{
+                ls.prob.chosen[[q]][is.na(m.prob.chosen)] <- 1L
+            }
             rm(m.tmp)
-        } else{
-            m.prob.chosen[is.na(m.prob.chosen)] <- 1L
         }
-    }
+    } 
     
     ############################################################################
     ##  Calculate the log likelihood value
     ############################################################################
-    ##  Take the product over choice tasks - IND*DRAWS
-    v.prob.sequence <- colProds(m.prob.chosen)
+    ##  IND x CLASS
+    m.prob.sequence <- Reduce(cbind, lapply(ls.prob.chosen, function(mX){
+        ##  Take the product over choice tasks - IND*DRAWS
+        m.tmp <- colProds(mX)
+        ##  Average over draws
+        m.tmp <- rowMeans2(matrix(m.tmp, nrow= (nrow(ls.X[[1L]])/Estim.Opt$i.tasks)))
+        return(m.tmp)
+    }))
     
-    ##  Average over draws - IND
-    v.lik <- rowMeans2(matrix(v.prob.sequence, nrow = (nrow(ls.X[[1]])/Estim.Opt$i.tasks)))
+    ##  IND*CLASS 
+    v.class.prob <- colMeans2(m.class.prob)
+    ##  IND x CLASS
+    m.class.prob <- matrix(v.class.prob, ncol = Estim.Opt$i.classes)
+    
+    ##  Calculate the likelihood
+    v.lik <- rowSums2(m.class.prob * m.prob.sequence)
     
     ##  Take the log
     v.log.lik <- log(v.lik)
