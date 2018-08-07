@@ -19,6 +19,8 @@ Generic:
 
 - The model allows the parameter distributions to be correlated (within-class) or uncorrelated and interactions with the means to be either generic or class specific
 
+- The model is sensitive to starting values and you may experience convergence issues
+
 ################################################################################
 References:
 
