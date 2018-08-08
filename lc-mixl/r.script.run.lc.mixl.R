@@ -266,7 +266,7 @@ Estim.Opt$str.scale.par <- c()
 ################################################################################
 Estim.Opt$b.latent.class <- TRUE
 Estim.Opt$i.classes <- 2L
-Estim.Opt$str.class.par <- c("const")
+Estim.Opt$str.class.par <- c("const", "male")
 
 ################################################################################
 ##  Specify information about starting values
@@ -292,7 +292,7 @@ Estim.Opt$d.multiplier <- 1.5
 Estim.Opt$i.seed <- 57888385L
 
 ##  Vector of starting values the length of the number of parameters
-v.param <- c(rep(0, 8), rep(0.1, 8), 0.5)
+v.param <- c(rep(0, 8), rep(0.1, 8), 0.5, 0.5)
 
 ################################################################################
 ### Start running the model
