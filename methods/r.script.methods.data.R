@@ -313,6 +313,7 @@ fn.set.up.data <- function(Estim.Opt){
                                                                         times = iTemp), ncol = iTemp)
                                                     return(mTemp)
                                                 })))
+                
                 rownames(mTemp) <- unlist(Estim.Opt$ls.constrained.par)
                 
                 ##  Sort based on rownames to match parameter vector
