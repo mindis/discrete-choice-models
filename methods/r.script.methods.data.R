@@ -296,6 +296,49 @@ fn.set.up.data <- function(Estim.Opt){
         ##  Save the list to global environment
         ##  IND*CT x NVAR
         assign("ls.data.C", ls.data.tmp, envir = .GlobalEnv)
+        
+        ##  Now check if we are estimating a model with equality constraints
+        if(Estim.Opt$b.equality.constrained){
+            ##  Check whether we have a user supplied matrix
+            if(is.null(Estim.Opt$m.constraints)){
+                ##  Expand to 2^k
+                mTemp <- expand.grid(lapply(seq_along(Estim.Opt$ls.constrained.par),
+                                            function(ik){return(c(0L, 1L))}))
+                
+                ##  Repeat the releveant columns
+                mTemp <- t(Reduce(cbind, lapply(seq_along(Estim.Opt$ls.constrained.par),
+                                                function(ik){
+                                                    iTemp <- length(Estim.Opt$ls.constrained.par[[ik]])
+                                                    mTemp <- matrix(rep(m.constraints[, ik],
+                                                                        times = iTemp), ncol = iTemp)
+                                                    return(mTemp)
+                                                })))
+                rownames(mTemp) <- unlist(Estim.Opt$ls.constrained.par)
+                
+                ##  Sort based on rownames to match parameter vector
+                vSort <- rep(NA, nrow(mTemp))
+                for(k in seq_len(nrow(mTemp))){
+                    vSort[[k]] <- which(row.names(mTemp)[k] == Estim.Opt$str.fixed.par)
+                }
+                ##  NVAR x 2^k
+                mTemp <- mTemp[order(vSort), ]
+            } else {
+                mTemp <- Estim.Opt$m.constraints
+            }
+            
+            ##  If we are working with a mixed logit -- return as a list
+            if(length(Estim.Opt$ls.rand.par) > 0L){
+                lsTemp <- as.list(as.data.frame(mTemp))
+                strTemp <- unlist(Estim.Opt$ls.rand.par)
+                lsTemp <- lapply(lsTemp, function(vX){
+                    names(vX) <- strTemp
+                    return(vX)
+                })
+                assign("ls.constraints", lsTemp, envir = .GlobalEnv)
+            } else {
+                assign("m.constraints", mTemp, envir = .GlobalEnv)
+            }
+        }
     }
     
     ############################################################################
