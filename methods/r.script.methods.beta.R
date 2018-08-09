@@ -17,10 +17,10 @@ fn.make.beta.names <- function(Estim.Opt){
     if(length(Estim.Opt$str.fixed.par) > 0){
         str.fixed <- paste0("beta.", Estim.Opt$str.fixed.par)
         if(Estim.Opt$b.latent.class){
-            str.fixed <- paste("beta", rep(Estim.Opt$str.fixed.par,
-                                           times = Estim.Opt$i.classes),
-                               rep(seq_len(Estim.Opt$i.classes),
-                                   each = length(Estim.Opt$str.fixed.par)),
+            str.tmp <- Estim.Opt$str.fixed.par
+            i.Q <- Estim.Opt$i.classes
+            str.fixed <- paste("beta", rep(str.tmp, times = i.Q),
+                               rep(seq_len(i.Q), each = length(str.tmp)),
                                sep = ".")
         }
     }
@@ -33,14 +33,37 @@ fn.make.beta.names <- function(Estim.Opt){
         if(Estim.Opt$b.correlation){
             str.std <- NULL
             i.K <- length(Estim.Opt$ls.rand.par)
-            for(i in 1:i.K){
+            for(i in 1L:i.K){
                 str.std <- c(str.std,
                              paste("sigma", str.tmp[i], str.tmp[i:i.K],
                                    sep = "."))
             }
         }
+        ##  If we are estimating LC-MIXL
+        if(Estim.Opt$b.latent.class){
+            str.tmp <- names(Estim.Opt$ls.rand.par)
+            i.Q <- Estim.Opt$i.classes
+            str.mean <- paste("beta", rep(str.tmp, times = i.Q),
+                              rep(seq_len(i.Q), each = length(str.tmp)),
+                              sep = ".")
+            str.std <- paste("sigma", rep(str.tmp, times = i.Q),
+                             rep(seq_len(i.Q), each = length(str.tmp)),
+                             sep = ".")
+            if(Estim.Opt$b.correlation){
+                str.std <- NULL
+                i.K <- length(Estim.Opt$ls.rand.par)
+                for(i in 1L:i.K){
+                    str.std <- c(str.std,
+                                 paste("sigma", str.tmp[i], str.tmp[i:i.K],
+                                       sep = "."))
+                }
+                str.std <- paste(rep(str.std, times = i.Q),
+                                 rep(seq_len(i.Q), each = length(str.std)),
+                                 sep = ".")
+            }
+        }
     }
-    
+
     ##  Interactions with random parameters
     if(length(Estim.Opt$ls.het.par) > 0 ){
         str.tmp <- names(Estim.Opt$ls.het.par)
@@ -48,6 +71,13 @@ fn.make.beta.names <- function(Estim.Opt){
             outer(x, Estim.Opt$ls.het.par[[x]], FUN = paste, sep = ".")
         }))
         str.het <- paste0("phi.", str.het)
+        ##  If we are estimating LC-MIXL
+        if(Estim.Opt$b.latent.class && Estim.Opt$b.class.specific){
+            i.Q <- Estim.Opt$i.classes
+            str.het <- paste(rep(str.het, times = i.Q),
+                             rep(seq_len(i.Q), each = length(str.het)),
+                             sep = ".")
+        }
     }
     
     ##  Relative scale parameters

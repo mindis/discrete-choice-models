@@ -1,5 +1,5 @@
 ################################################################################
-##  Name:         r.script.run.mnl.R
+##  Name:         r.script.run.mixl.R
 ##  Created:      2018.08.02
 ##  Last edited:  2018.08.02
 ##  Author:       Erlend Dancke Sandorf
@@ -60,7 +60,7 @@ source("../methods/r.script.methods.miscellaneous.R")
 source("../methods/r.script.methods.run.R")
 source("../methods/r.script.methods.summary.R")
 source("../methods/r.script.methods.parallel.R")
-source("r.script.ll.mnl.R")
+source("r.script.ll.lc.mixl.R")
 
 ################################################################################
 ##  Set up a list of options that controls how the model runs
@@ -73,8 +73,8 @@ Estim.Opt <- list()
 ##  'str.output.estimates'  will be used to store .txt and .rds files of model
 ##                          outputs
 ################################################################################
-Estim.Opt$str.model.name <- "Multinomial Logit Model -- MNL"
-Estim.Opt$str.output.estimates <- "output.mnl.demo"
+Estim.Opt$str.model.name <- "Latent Class - Mixed Logit Model -- LC-MIXL"
+Estim.Opt$str.output.estimates <- "output.lc.mixl.demo"
 
 ################################################################################
 ##  Specify information about the data
@@ -148,7 +148,7 @@ Estim.Opt$str.packages <- c("maxLik", "numDeriv", "matrixStats", "msm", "pryr",
 ################################################################################
 Estim.Opt$b.robust.vcov           <- TRUE
 Estim.Opt$b.adjusted.robust.vcov  <- TRUE
-Estim.Opt$b.rescale.utility <- FALSE 
+Estim.Opt$b.rescale.utility <- TRUE 
 
 ################################################################################
 ##  Specify strings including the names of the variables in your data
@@ -174,7 +174,7 @@ Estim.Opt$str.cost <-  "x4"
 ##  
 ##  If no variables have non-random parameters - leave empty: c()
 ################################################################################
-Estim.Opt$str.fixed.par <- c("x4", "x1", "x2", "x3")
+Estim.Opt$str.fixed.par <- c()
 
 ################################################################################
 ##  Estimate in willingness-to-pay space
@@ -204,7 +204,7 @@ Estim.Opt$b.wtp.space <- FALSE
 ##
 ##  See ?randtoolbox
 ################################################################################
-Estim.Opt$b.make.draws <- FALSE
+Estim.Opt$b.make.draws <- TRUE
 Estim.Opt$b.correlation <- FALSE
 Estim.Opt$str.draws.type <- "sobol" 
 Estim.Opt$i.draws <- 50L
@@ -227,7 +227,7 @@ Estim.Opt$i.scrambling.type <- 3L
 ##
 ##  If no variables have random parameters - leave empty: list()
 ################################################################################
-Estim.Opt$ls.rand.par <- list()
+Estim.Opt$ls.rand.par <- list(x4 = "-ln", x3 = "n", x2 = "n", x1 = "n")
 
 ################################################################################
 ##  Specify a list of variables where the mean of the parameter distribution is
@@ -264,9 +264,9 @@ Estim.Opt$str.scale.par <- c()
 ##                      contain 'const', which is a generic constant added to
 ##                      the data if missing.
 ################################################################################
-Estim.Opt$b.latent.class <- FALSE
+Estim.Opt$b.latent.class <- TRUE
 Estim.Opt$i.classes <- 2L
-Estim.Opt$str.class.par <- c("const")
+Estim.Opt$str.class.par <- c("const", "male")
 
 ################################################################################
 ##  Specify information about starting values
@@ -292,7 +292,7 @@ Estim.Opt$d.multiplier <- 1.5
 Estim.Opt$i.seed <- 57888385L
 
 ##  Vector of starting values the length of the number of parameters
-v.param <- c(0, 0, 0, 0)
+v.param <- c(rep(0, 8), rep(0.1, 8), 0.5, 0.5)
 
 ################################################################################
 ### Start running the model

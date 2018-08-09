@@ -128,6 +128,11 @@ fn.generate.draws <- function(Estim.Opt){
     ##  Set the number of random variables
     i.K <- length(Estim.Opt$ls.rand.par)
     
+    ##  If we are estimating LC-MIXL
+    if(Estim.Opt$b.latent.class){
+        i.K <- length(Estim.Opt$ls.rand.par) * Estim.Opt$i.classes
+    }
+    
     ##  Pseudo-random draws
     if(Estim.Opt$str.draws.type == "pseudo"){
         m.draws <- matrix(runif(Estim.Opt$i.ind * Estim.Opt$i.draws * i.K),
