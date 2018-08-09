@@ -16,7 +16,9 @@ fn.make.beta.names <- function(Estim.Opt){
     ##  Fixed parameters
     if(length(Estim.Opt$str.fixed.par) > 0){
         str.fixed <- paste0("beta.", Estim.Opt$str.fixed.par)
-        if(Estim.Opt$b.latent.class){
+        
+        ##  If we are estimating LC-MNL and don't have equality constraints imposed
+        if(Estim.Opt$b.latent.class && !Estim.Opt$b.equality.constrained){
             str.tmp <- Estim.Opt$str.fixed.par
             i.Q <- Estim.Opt$i.classes
             str.fixed <- paste("beta", rep(str.tmp, times = i.Q),
@@ -39,8 +41,9 @@ fn.make.beta.names <- function(Estim.Opt){
                                    sep = "."))
             }
         }
-        ##  If we are estimating LC-MIXL
-        if(Estim.Opt$b.latent.class){
+        
+        ##  If we are estimating LC - MIXL and don't have equality constraints imposed
+        if(Estim.Opt$b.latent.class && !Estim.Opt$b.equality.constrained){
             str.tmp <- names(Estim.Opt$ls.rand.par)
             i.Q <- Estim.Opt$i.classes
             str.mean <- paste("beta", rep(str.tmp, times = i.Q),
@@ -71,8 +74,8 @@ fn.make.beta.names <- function(Estim.Opt){
             outer(x, Estim.Opt$ls.het.par[[x]], FUN = paste, sep = ".")
         }))
         str.het <- paste0("phi.", str.het)
-        ##  If we are estimating LC-MIXL
-        if(Estim.Opt$b.latent.class && Estim.Opt$b.class.specific){
+        ##  If we are estimating LC-MIXL and don't have equality constraints imposed
+        if(Estim.Opt$b.latent.class && Estim.Opt$b.class.specific && !Estim.Opt$b.equality.constrained){
             i.Q <- Estim.Opt$i.classes
             str.het <- paste(rep(str.het, times = i.Q),
                              rep(seq_len(i.Q), each = length(str.het)),
@@ -90,6 +93,17 @@ fn.make.beta.names <- function(Estim.Opt){
     if(Estim.Opt$b.latent.class){
         i.K <- length(Estim.Opt$str.class.par)
         i.Q <- Estim.Opt$i.classes
+        
+        ## Change the number of classes if we are estimating equality constraints
+        if(Estim.Opt$b.equality.constrained){
+            if(Estim.Opt$b.mixture.probs){
+                ##  Add the +1 to avoid another if - statement
+                i.Q <- length(Estim.Opt$ls.constrained.par) + 1L
+            } else {
+                i.Q <- 2L^length(Estim.Opt$ls.constrained.par)
+            }
+        }
+        
         str.class <- paste("theta",
                            rep(Estim.Opt$str.class.par, times = (i.Q - 1L)),
                            rep(seq_len((i.Q - 1L)), each = i.K),
