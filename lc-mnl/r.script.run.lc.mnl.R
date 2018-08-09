@@ -105,6 +105,8 @@ Estim.Opt$i.tasks <- 12L
 ##  d.reltol    -   1e-06
 ##  d.steptol   -   1e-10
 ##
+##  str.method  -   "BFGS", "BFGSR", "NM", "CG", "NR", "BHHH", "SANN"
+##
 ##  'b.final.hessian' is a boolean. If TRUE the final hessian from maxLik is used
 ##  and if FALSE the final hessian is calculated using numDeriv::hessian()
 ##
@@ -258,7 +260,7 @@ Estim.Opt$str.scale.par <- c()
 ##  Latent Class Model
 ##
 ##  'b.latent.class'    If TRUE - estimate a Latent Class Model
-##  'i.classes'         Indicates the number of classes
+##  'i.classes'         Indicates the number of classes (Not used for ECLC)
 ##  'str.class.par'     Character string containing the variables entering the
 ##                      class probability function. Must at the very least
 ##                      contain 'const', which is a generic constant added to
@@ -267,6 +269,31 @@ Estim.Opt$str.scale.par <- c()
 Estim.Opt$b.latent.class <- TRUE
 Estim.Opt$i.classes <- 3L
 Estim.Opt$str.class.par <- c("const")
+
+################################################################################
+##  Specify equality constraints (to use in AN-A models)
+##
+##  'b.equality.constrained'    If TRUE - impose an equality constraint where
+##                              parameters/distributions are restricted to be
+##                              equal or zero (i.e. a typical AN-A model)
+##  'b.mixture.probs'           If TRUE - calculate the class probabilities as
+##                              as a mixture of the probabilities of 1/0 for 
+##                              each attribute. If FALSE - use MNL probs.
+##  'm.constraints'             A user supplied matrix of constraints containing
+##                              0 and 1. Each row an attribute and each column
+##                              a class constraint. If NULL - estimate the full
+##                              2^k. Use same order as in 'str.fixed.par'
+##  'ls.constrained.par'        List of strings containing the attributes that
+##                              are constrained. In case of dummy coding and you
+##                              do not consider only some levels to be constrained
+################################################################################
+Estim.Opt$b.equality.constrained <- FALSE
+Estim.Opt$b.mixture.probs <- TRUE
+Estim.Opt$m.constraints <- NULL 
+Estim.Opt$ls.constrained.par <- list(att1 = c("x1"),
+                                     att2 = c("x2"),
+                                     att3 = c("x3"),
+                                     att4 = c("x4"))
 
 ################################################################################
 ##  Specify information about starting values
