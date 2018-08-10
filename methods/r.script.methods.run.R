@@ -71,6 +71,10 @@ fn.run.model <- function(Estim.Opt){
     ##  Check number of cores
     if(Estim.Opt$b.parallel && Estim.Opt$i.cores >= detectCores()){
         Estim.Opt$i.cores <- max(1L, detectCores() - 1L)
+        cat("###################################################################\n")
+        cat("The number of cores has been adjusted to detectCores() -1L \n")
+        cat("###################################################################\n")
+        cat("\n")
     }
     
     ############################################################################

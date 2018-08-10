@@ -72,6 +72,17 @@ fn.set.up.worker <- function(ls.cluster, Estim.Opt){
             NULL
         })
         rm(ls.data.C, envir = .GlobalEnv)
+        
+        ##  Export the list/matrix of constraints
+        if(Estim.Opt$b.equality.constrained){
+            if(length(Estim.Opt$ls.rand.par) > 0L){
+                clusterExport(ls.cluster, "ls.constraints")
+                rm(ls.constraints, envir = .GlobalEnv)
+            } else {
+                clusterExport(ls.cluster, "m.constraints")
+                rm(m.constraints, envir = .GlobalEnv)
+            }
+        }
     }
     
     ##  Export the random draws

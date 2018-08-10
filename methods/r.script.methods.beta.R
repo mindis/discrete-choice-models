@@ -100,7 +100,11 @@ fn.make.beta.names <- function(Estim.Opt){
                 ##  Add the +1 to avoid another if - statement
                 i.Q <- length(Estim.Opt$ls.constrained.par) + 1L
             } else {
-                i.Q <- 2L^length(Estim.Opt$ls.constrained.par)
+                if(is.null(Estim.Opt$m.constraints)){
+                    i.Q <- ncol(Estim.Opt$m.constraints)
+                } else {
+                    i.Q <- 2L^length(Estim.Opt$ls.constrained.par)
+                }
             }
         }
         

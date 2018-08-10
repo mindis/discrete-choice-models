@@ -299,6 +299,11 @@ fn.set.up.data <- function(Estim.Opt){
         
         ##  Now check if we are estimating a model with equality constraints
         if(Estim.Opt$b.equality.constrained){
+            ##  Temporary vector of parameter names
+            strT <- ifelse(length(Estim.Opt$ls.rand.par) > 0L,
+                           names(Estim.Opt$ls.rand.par),
+                           Estim.Opt$str.fixed.par)
+            
             ##  Check whether we have a user supplied matrix
             if(is.null(Estim.Opt$m.constraints)){
                 ##  Expand to 2^k
@@ -319,12 +324,14 @@ fn.set.up.data <- function(Estim.Opt){
                 ##  Sort based on rownames to match parameter vector
                 vSort <- rep(NA, nrow(mTemp))
                 for(k in seq_len(nrow(mTemp))){
-                    vSort[[k]] <- which(row.names(mTemp)[k] == Estim.Opt$str.fixed.par)
+                    vSort[k] <- which(row.names(mTemp)[k] == strT)
                 }
+
                 ##  NVAR x 2^k
                 mTemp <- mTemp[order(vSort), ]
             } else {
-                mTemp <- Estim.Opt$m.constraints
+                mT <- Estim.Opt$m.constraints
+                if(nrow(mT) < length(strT)) stop("Check the dimensions of the supplied matrix of constraints! \n")
             }
             
             ##  If we are working with a mixed logit -- return as a list
