@@ -96,11 +96,11 @@ fn.make.beta.names <- function(Estim.Opt){
         
         ## Change the number of classes if we are estimating equality constraints
         if(Estim.Opt$b.equality.constrained){
-            if(Estim.Opt$b.mixture.probs){
+            if(Estim.Opt$b.discrete.mixture){
                 ##  Add the +1 to avoid another if - statement
                 i.Q <- length(Estim.Opt$ls.constrained.par) + 1L
             } else {
-                if(is.null(Estim.Opt$m.constraints)){
+                if(!is.null(Estim.Opt$m.constraints)){
                     i.Q <- ncol(Estim.Opt$m.constraints)
                 } else {
                     i.Q <- 2L^length(Estim.Opt$ls.constrained.par)

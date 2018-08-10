@@ -270,6 +270,20 @@ fn.set.up.data <- function(Estim.Opt){
         str.col.names <- Estim.Opt$str.class.par
         i.Q <- Estim.Opt$i.classes
         
+        ##  If we are estimating equality constraints we need to adjust i.Q
+        if(Estim.Opt$b.equality.constrained){
+            if(Estim.Opt$b.discrete.mixture){
+                i.Q <- length(Estim.Opt$ls.constrained.par)
+            } else {
+                if(!is.null(Estim.Opt$m.constraints)){
+                    i.Q <- ncol(Estim.Opt$m.constraints)
+                } else {
+                    i.Q <- 2L ^ length(Estim.Opt$ls.constrained.par)
+                }
+            }
+        }
+        
+        ##  Set up data for the class probability functions
         ls.data.tmp <- lapply(ls.data, function(m.x){
             ##  Need a list the length of i.Q
             ls.tmp <- lapply(seq_len(i.Q), function(i.q){
@@ -280,8 +294,10 @@ fn.set.up.data <- function(Estim.Opt){
                 return(m.tmp)
             })
             
-            ##  Set the last vector (matrix) to zero
-            ls.tmp[[i.Q]] <- ls.tmp[[i.Q]] * 0L
+            ##  Set the last vector (matrix) to zero, unless we are using a discrete mixture
+            if(!Estim.Opt$b.discrete.mixture){
+                ls.tmp[[i.Q]] <- ls.tmp[[i.Q]] * 0L
+            }
             
             ##  Check that the list elements are matrices
             ls.tmp <- lapply(ls.tmp, function(m.x) {
@@ -300,52 +316,49 @@ fn.set.up.data <- function(Estim.Opt){
         ##  Now check if we are estimating a model with equality constraints
         if(Estim.Opt$b.equality.constrained){
             ##  Temporary vector of parameter names
-            strT <- ifelse(length(Estim.Opt$ls.rand.par) > 0L,
-                           names(Estim.Opt$ls.rand.par),
-                           Estim.Opt$str.fixed.par)
+            if(length(Estim.Opt$ls.rand.par) > 0L){
+                strT <- names(Estim.Opt$ls.rand.par)
+            } else {
+                strT <- Estim.Opt$str.fixed.par
+            }
             
             ##  Check whether we have a user supplied matrix
             if(is.null(Estim.Opt$m.constraints)){
                 ##  Expand to 2^k
                 mTemp <- expand.grid(lapply(seq_along(Estim.Opt$ls.constrained.par),
                                             function(ik){return(c(0L, 1L))}))
-                
-                ##  Repeat the releveant columns
-                mTemp <- t(Reduce(cbind, lapply(seq_along(Estim.Opt$ls.constrained.par),
-                                                function(ik){
-                                                    iTemp <- length(Estim.Opt$ls.constrained.par[[ik]])
-                                                    mTemp <- matrix(rep(m.constraints[, ik],
-                                                                        times = iTemp), ncol = iTemp)
-                                                    return(mTemp)
-                                                })))
-                
-                rownames(mTemp) <- unlist(Estim.Opt$ls.constrained.par)
-                
-                ##  Sort based on rownames to match parameter vector
-                vSort <- rep(NA, nrow(mTemp))
-                for(k in seq_len(nrow(mTemp))){
-                    vSort[k] <- which(row.names(mTemp)[k] == strT)
-                }
-
-                ##  NVAR x 2^k
-                mTemp <- mTemp[order(vSort), ]
             } else {
-                mT <- Estim.Opt$m.constraints
-                if(nrow(mT) < length(strT)) stop("Check the dimensions of the supplied matrix of constraints! \n")
+                mTemp <- Estim.Opt$m.constraints
+                if(nrow(mTemp) < length(strT)) stop("Check the dimensions of the supplied matrix of constraints! \n")
             }
             
-            ##  If we are working with a mixed logit -- return as a list
-            if(length(Estim.Opt$ls.rand.par) > 0L){
-                lsTemp <- as.list(as.data.frame(mTemp))
-                strTemp <- unlist(Estim.Opt$ls.rand.par)
-                lsTemp <- lapply(lsTemp, function(vX){
-                    names(vX) <- strTemp
-                    return(vX)
-                })
-                assign("ls.constraints", lsTemp, envir = .GlobalEnv)
-            } else {
-                assign("m.constraints", mTemp, envir = .GlobalEnv)
+            ##  Repeat the releveant columns
+            mTemp <- t(Reduce(cbind, lapply(seq_along(Estim.Opt$ls.constrained.par),
+                                            function(ik){
+                                                iTemp <- length(Estim.Opt$ls.constrained.par[[ik]])
+                                                mTemp <- matrix(rep(mTemp[, ik],
+                                                                    times = iTemp), ncol = iTemp)
+                                                return(mTemp)
+                                            })))
+            
+            rownames(mTemp) <- unlist(Estim.Opt$ls.constrained.par)
+            
+            ##  Sort based on rownames to match parameter vector
+            vSort <- rep(NA, nrow(mTemp))
+            for(k in seq_len(nrow(mTemp))){
+                vSort[k] <- which(row.names(mTemp)[k] == strT)
             }
+            
+            ##  NVAR x 2^k
+            mTemp <- mTemp[order(vSort), ]
+            
+            ##  Return as a list
+            lsTemp <- as.list(as.data.frame(mTemp))
+            lsTemp <- lapply(lsTemp, function(vX){
+                names(vX) <- strT
+                return(vX)
+            })
+            assign("ls.constraints", lsTemp, envir = .GlobalEnv)
         }
     }
     

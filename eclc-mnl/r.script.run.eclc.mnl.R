@@ -288,8 +288,8 @@ Estim.Opt$str.class.par <- c("const")
 ##                              do not consider only some levels to be constrained
 ################################################################################
 Estim.Opt$b.equality.constrained <- TRUE
-Estim.Opt$b.mixture.probs <- TRUE
-Estim.Opt$m.constraints <- NULL 
+Estim.Opt$b.discrete.mixture <- TRUE
+Estim.Opt$m.constraints <- NULL
 Estim.Opt$ls.constrained.par <- list(att1 = c("x1"),
                                      att2 = c("x2"),
                                      att3 = c("x3"),
@@ -319,7 +319,7 @@ Estim.Opt$d.multiplier <- 1.5
 Estim.Opt$i.seed <- 57888385L
 
 ##  Vector of starting values the length of the number of parameters
-v.param <- c(rep(0, 12), 0.5, 0.5)
+v.param <- c(rep(0,4), rep(0.5, 4))
 
 ################################################################################
 ### Start running the model

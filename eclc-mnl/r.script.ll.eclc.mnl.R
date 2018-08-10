@@ -1,7 +1,7 @@
 ################################################################################
 ##  Name:         r.script.ll.lc.R
-##  Created:      2018.08.02
-##  Last edited:  2018.08.02
+##  Created:      2018.08.10
+##  Last edited:  2018.08.10
 ##  Author:       Erlend Dancke Sandorf
 ##  Contributors: N/A
 ################################################################################
@@ -10,41 +10,91 @@ fn.log.lik <- function(v.param){
     ############################################################################
     ##  Class probability function
     ############################################################################
-    ##  Zeros are added for the normalizing class
-    v.theta <- c(v.param[ls.str.par.names[["str.class"]]],
-                 rep(0L, length(Estim.Opt$str.class.par)))
+    ##  Define some parameters
+    i.Q <- length(ls.constraints)
     
-    ls.class.prob <- lapply(seq_along(ls.C), function(i.x){
-        i.K <- length(Estim.Opt$str.class.par)
-        i.start <- 1L + (i.K * (i.x - 1L))
-        i.end <- i.K * i.x
-        ##  IND*CT
-        exp(crossprod(t(ls.C[[i.x]]), v.theta[i.start:i.end]))
-    })
-    
-    ##  Calculate the probability - Vector IND*CT
-    v.class.prob.sum <- Reduce("+", ls.class.prob)
-    ls.class.prob <- lapply(ls.class.prob, function(v.x){
-        v.prob <- v.x / v.class.prob.sum
-        v.prob[is.na(v.prob)] <- 0
-        as.vector(v.prob)
-    })
-    
-    ##  IND*CT x CLASSES
-    m.class.prob <- Reduce(cbind, ls.class.prob)
-    ##  CT x IND*CLASSES
-    m.class.prob <- matrix(as.vector(m.class.prob), nrow = Estim.Opt$i.tasks)
-    
-    ############################################################################
-    rm(v.theta, ls.class.prob, v.class.prob.sum)
-    ############################################################################
+    ##  Check if we are calculating probabilities using a discrete mixture
+    if(Estim.Opt$b.discrete.mixture){
+        ##  This is the discrete mixture
+        v.theta <- v.param[ls.str.par.names[["str.class"]]]
+        
+        ls.class.prob <- lapply(seq_along(ls.C), function(q){
+            iK <- length(Estim.Opt$str.class.par)
+            iS <- 1L + (iK * (q - 1L))
+            iE <- iK * q
+            ##  IND*CT
+            exp(crossprod(t(ls.C[[q]]), v.theta[iS:iE]))
+        })
+        
+        ##  Calculate the probability
+        ls.class.prob <- lapply(ls.class.prob, function(vExp){
+            vPr <- vExp / (vExp + 1L)
+            vPr[is.na(vPr)] <- 0L
+            return(as.vector(vPr))
+        })
+        
+        ##  PR(ATT) x IND*CT
+        m.class.prob <- t(Reduce(cbind, ls.class.prob))
+        
+        ##  Use the probs to create the mixing distribution
+        ls.class.prob <- lapply(ls.constraints, function(vC){
+            mT <- m.class.prob * vC + (1L - m.class.prob) * (1L - vC)
+            vT <- colProds(mT)
+            return(vT)
+        })
+        
+        ## IND*CT x CLASSES
+        m.class.prob <- Reduce(cbind, ls.class.prob)
+        ##  CT x IND*CLASSES
+        m.class.prob <- matrix(as.vector(m.class.prob), nrow = Estim.Opt$i.tasks)
+        
+        ########################################################################
+        rm(v.theta, ls.class.prob)
+        ########################################################################
+        
+    } else {
+        ##  Zeros are added for the normalizing class
+        v.theta <- c(v.param[ls.str.par.names[["str.class"]]],
+                     rep(0L, length(Estim.Opt$str.class.par)))
+        
+        ls.class.prob <- lapply(seq_along(ls.C), function(i.x){
+            i.K <- length(Estim.Opt$str.class.par)
+            i.start <- 1L + (i.K * (i.x - 1L))
+            i.end <- i.K * i.x
+            ##  IND*CT
+            exp(crossprod(t(ls.C[[i.x]]), v.theta[i.start:i.end]))
+        })
+        
+        ##  Calculate the probability - Vector IND*CT
+        v.class.prob.sum <- Reduce("+", ls.class.prob)
+        ls.class.prob <- lapply(ls.class.prob, function(v.x){
+            v.prob <- v.x / v.class.prob.sum
+            v.prob[is.na(v.prob)] <- 0
+            as.vector(v.prob)
+        })
+        
+        ##  IND*CT x CLASSES
+        m.class.prob <- Reduce(cbind, ls.class.prob)
+        ##  CT x IND*CLASSES
+        m.class.prob <- matrix(as.vector(m.class.prob), nrow = Estim.Opt$i.tasks)
+        
+        ########################################################################
+        rm(v.theta, ls.class.prob, v.class.prob.sum)
+        ########################################################################
+    }
+
+
     
     ############################################################################
     ##  Set up the matrix of betas
     ############################################################################
-    m.beta.f <- matrix(v.param[ls.str.par.names[["str.fixed"]]],
-                       ncol = Estim.Opt$i.classes)
+    m.beta.f <- matrix(rep(v.param[ls.str.par.names[["str.fixed"]]], times = i.Q),
+                       ncol = i.Q)
     rownames(m.beta.f) <- Estim.Opt$str.fixed.par
+    
+    ##  Impose the equality constraint
+    m.const <- Reduce(cbind, ls.constraints)
+    m.beta.f <- m.beta.f * m.const
     
     ############################################################################
     ##  Check if we are calculating utility in WTP space 
@@ -133,8 +183,8 @@ fn.log.lik <- function(v.param){
     v.class.prob <- colMeans2(m.class.prob)
     
     ##  Rearrange the LC matrix IND x CLASS
-    m.prob.sequence <- matrix(v.prob.sequence, ncol = Estim.Opt$i.classes)
-    m.class.prob <- matrix(v.class.prob, ncol = Estim.Opt$i.classes)
+    m.prob.sequence <- matrix(v.prob.sequence, ncol = i.Q)
+    m.class.prob <- matrix(v.class.prob, ncol = i.Q)
     
     v.lik <- rowSums2(m.class.prob * m.prob.sequence)
     v.log.lik <- log(v.lik)
