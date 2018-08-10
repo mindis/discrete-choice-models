@@ -328,8 +328,10 @@ fn.set.up.data <- function(Estim.Opt){
                 mTemp <- expand.grid(lapply(seq_along(Estim.Opt$ls.constrained.par),
                                             function(ik){return(c(0L, 1L))}))
             } else {
-                mTemp <- Estim.Opt$m.constraints
-                if(nrow(mTemp) < length(strT)) stop("Check the dimensions of the supplied matrix of constraints! \n")
+                mTemp <- t(Estim.Opt$m.constraints)
+                if(nrow(mTemp) < length(Estim.Opt$ls.constrained.par)){
+                    stop("Check the dimensions of the supplied matrix of constraints! \n")
+                }
             }
             
             ##  Repeat the releveant columns
