@@ -23,12 +23,12 @@ fn.log.lik <- function(v.param){
             iS <- 1L + (iK * (q - 1L))
             iE <- iK * q
             ##  IND*CT
-            exp(crossprod(t(ls.C[[q]]), v.theta[iS:iE]))
+            return(crossprod(t(ls.C[[q]]), v.theta[iS:iE]))
         })
         
         ##  Calculate the probability
-        ls.class.prob <- lapply(ls.class.prob, function(vExp){
-            vPr <- vExp / (vExp + 1L)
+        ls.class.prob <- lapply(ls.class.prob, function(vT){
+            vPr <- 1L / (1L + exp(-(vT)))
             vPr[is.na(vPr)] <- 0L
             return(as.vector(vPr))
         })
