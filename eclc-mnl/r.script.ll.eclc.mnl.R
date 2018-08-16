@@ -29,7 +29,7 @@ fn.log.lik <- function(v.param){
         ##  Calculate the probability
         ls.class.prob <- lapply(ls.class.prob, function(vT){
             vPr <- 1L / (1L + exp(-(vT)))
-            vPr[is.na(vPr)] <- 0L
+            # vPr[is.na(vPr)] <- 0L
             return(as.vector(vPr))
         })
         
@@ -38,12 +38,12 @@ fn.log.lik <- function(v.param){
         
         ##  Use the probs to create the mixing distribution
         ls.class.prob <- lapply(ls.constraints, function(vC){
-            mT <- m.class.prob * vC + (1L - m.class.prob) * (1L - vC)
+            mT <- (m.class.prob * vC) + ((1L - m.class.prob) * (1L - vC))
             vT <- colProds(mT)
             return(vT)
         })
         
-        ## IND*CT x CLASSES
+        ## IND*CT x CLASSES -- My probabilities sum to more than 1!!! 15th of August
         m.class.prob <- Reduce(cbind, ls.class.prob)
         ##  CT x IND*CLASSES
         m.class.prob <- matrix(as.vector(m.class.prob), nrow = Estim.Opt$i.tasks)
@@ -83,8 +83,6 @@ fn.log.lik <- function(v.param){
         ########################################################################
     }
 
-
-    
     ############################################################################
     ##  Set up the matrix of betas
     ############################################################################
