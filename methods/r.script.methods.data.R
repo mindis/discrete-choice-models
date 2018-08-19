@@ -334,6 +334,10 @@ fn.set.up.data <- function(Estim.Opt){
                 }
             }
             
+            ##  Assign the list of deltas to global
+            lsTemp <- as.list(as.data.frame(t(mTemp)))
+            assign("ls.delta", lsTemp, envir = .GlobalEnv)
+            
             ##  Repeat the releveant columns
             mTemp <- t(Reduce(cbind, lapply(seq_along(Estim.Opt$ls.constrained.par),
                                             function(ik){
@@ -346,21 +350,23 @@ fn.set.up.data <- function(Estim.Opt){
             rownames(mTemp) <- unlist(Estim.Opt$ls.constrained.par)
             
             ##  Sort based on rownames to match parameter vector
-            vSort <- rep(NA, nrow(mTemp))
-            for(k in seq_len(nrow(mTemp))){
-                vSort[k] <- which(row.names(mTemp)[k] == strT)
-            }
-            
-            ##  NVAR x 2^k
-            mTemp <- mTemp[order(vSort), ]
+            # vSort <- rep(NA, nrow(mTemp))
+            # for(k in seq_len(nrow(mTemp))){
+            #     vSort[k] <- which(row.names(mTemp)[k] == strT)
+            # }
+            # 
+            # ##  NVAR x 2^k
+            # mTemp <- mTemp[order(vSort), ]
             
             ##  Return as a list
-            lsTemp <- as.list(as.data.frame(mTemp))
-            lsTemp <- lapply(lsTemp, function(vX){
-                names(vX) <- strT
-                return(vX)
-            })
-            assign("ls.constraints", lsTemp, envir = .GlobalEnv)
+            # lsTemp <- as.list(as.data.frame(mTemp))
+            # lsTemp <- lapply(lsTemp, function(vX){
+            #     names(vX) <- strT
+            #     return(vX)
+            # })
+            
+            ##  NVAR x 2^k
+            assign("m.delta.expanded", mTemp, envir = .GlobalEnv)
         }
     }
     

@@ -75,8 +75,9 @@ fn.set.up.worker <- function(ls.cluster, Estim.Opt){
         
         ##  Export the list/matrix of constraints
         if(Estim.Opt$b.equality.constrained){
-            clusterExport(ls.cluster, "ls.constraints")
-            rm(ls.constraints, envir = .GlobalEnv)
+            clusterExport(ls.cluster, "ls.delta")
+            clusterExport(ls.cluster, "m.delta.expanded")
+            rm(ls.delta, ls.delta.expanded, envir = .GlobalEnv)
         }
     }
     

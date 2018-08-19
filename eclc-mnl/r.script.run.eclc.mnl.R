@@ -285,7 +285,9 @@ Estim.Opt$str.class.par <- c("const")
 ##                              2^k. Use same order as in 'str.fixed.par'
 ##  'ls.constrained.par'        List of strings containing the attributes that
 ##                              are constrained. In case of dummy coding and you
-##                              do not consider only some levels to be constrained
+##                              do not consider only some levels to be constrained.
+##                              The names of the attributes must be in the same
+##                              order as ls.rand.par or fixed.par
 ################################################################################
 Estim.Opt$b.equality.constrained <- TRUE
 Estim.Opt$b.discrete.mixture <- TRUE

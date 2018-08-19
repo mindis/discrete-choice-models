@@ -11,7 +11,7 @@ fn.log.lik <- function(v.param){
     ##  Class probability function
     ############################################################################
     ##  Define some parameters
-    i.Q <- length(ls.constraints)
+    i.Q <- length(ls.delta)
     
     ##  Check if we are calculating probabilities using a discrete mixture
     if(Estim.Opt$b.discrete.mixture){
@@ -37,14 +37,15 @@ fn.log.lik <- function(v.param){
         m.class.prob <- t(Reduce(cbind, ls.class.prob))
         
         ##  Use the probs to create the mixing distribution
-        ls.class.prob <- lapply(ls.constraints, function(vC){
+        ls.class.prob <- lapply(ls.delta, function(vC){
             mT <- (m.class.prob * vC) + ((1L - m.class.prob) * (1L - vC))
             vT <- colProds(mT)
             return(vT)
         })
         
-        ## IND*CT x CLASSES -- My probabilities sum to more than 1!!! 15th of August
+        ## IND*CT x CLASSES
         m.class.prob <- Reduce(cbind, ls.class.prob)
+        
         ##  CT x IND*CLASSES
         m.class.prob <- matrix(as.vector(m.class.prob), nrow = Estim.Opt$i.tasks)
         
@@ -91,8 +92,8 @@ fn.log.lik <- function(v.param){
     rownames(m.beta.f) <- Estim.Opt$str.fixed.par
     
     ##  Impose the equality constraint
-    m.const <- Reduce(cbind, ls.constraints)
-    m.beta.f <- m.beta.f * m.const
+    # m.const <- Reduce(cbind, ls.constraints)
+    m.beta.f <- m.beta.f * m.delta.expanded
     
     ############################################################################
     ##  Check if we are calculating utility in WTP space 
@@ -178,7 +179,7 @@ fn.log.lik <- function(v.param){
     ##  IND*CLASS
     v.prob.sequence <- colProds(m.prob.chosen)
     ##  IND*CLASS
-    v.class.prob <- colMeans2(m.class.prob)
+    v.class.prob <- colMeans2(m.class.prob, na.rm = T)
     
     ##  Rearrange the LC matrix IND x CLASS
     m.prob.sequence <- matrix(v.prob.sequence, ncol = i.Q)
