@@ -281,11 +281,17 @@ Estim.Opt$str.class.par <- c("const")
 ##                              each attribute. If FALSE - use MNL probs.
 ##  'm.constraints'             A user supplied matrix of constraints containing
 ##                              0 and 1. Each row an attribute and each column
-##                              a class constraint. If NULL - estimate the full
-##                              2^k. Use same order as in 'str.fixed.par'
+##                              a class constraint. Relevant rows are repeated
+##                              based on the specification in ls.constrained.par.
+##                              Use same order as in 'str.fixed.par'. If a matrix
+##                              is supplied then we cannot calculate probabilities
+##                              as a discrete mixture. 
+##                              If NULL - estimate the full 2^k. 
 ##  'ls.constrained.par'        List of strings containing the attributes that
 ##                              are constrained. In case of dummy coding and you
-##                              do not consider only some levels to be constrained.
+##                              do not consider only some levels to be constrained,
+##                              you specify as a list which variables are part of
+##                              the same attribute.
 ##                              The names of the attributes must be in the same
 ##                              order as ls.rand.par or fixed.par
 ################################################################################

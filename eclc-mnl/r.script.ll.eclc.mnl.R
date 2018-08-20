@@ -23,18 +23,18 @@ fn.log.lik <- function(v.param){
             iS <- 1L + (iK * (q - 1L))
             iE <- iK * q
             ##  IND*CT
-            return(crossprod(t(ls.C[[q]]), v.theta[iS:iE]))
+            return(as.vector(crossprod(t(ls.C[[q]]), v.theta[iS:iE])))
         })
         
         ##  Calculate the probability
         ls.class.prob <- lapply(ls.class.prob, function(vT){
             vPr <- 1L / (1L + exp(-(vT)))
             # vPr[is.na(vPr)] <- 0L
-            return(as.vector(vPr))
+            return(vPr)
         })
         
         ##  PR(ATT) x IND*CT
-        m.class.prob <- t(Reduce(cbind, ls.class.prob))
+        m.class.prob <- Reduce(rbind, ls.class.prob)
         
         ##  Use the probs to create the mixing distribution
         ls.class.prob <- lapply(ls.delta, function(vC){
@@ -92,7 +92,6 @@ fn.log.lik <- function(v.param){
     rownames(m.beta.f) <- Estim.Opt$str.fixed.par
     
     ##  Impose the equality constraint
-    # m.const <- Reduce(cbind, ls.constraints)
     m.beta.f <- m.beta.f * m.delta.expanded
     
     ############################################################################
@@ -106,7 +105,7 @@ fn.log.lik <- function(v.param){
     }    
     
     ############################################################################
-    ##  Calculate the fixed part of utility
+    ##  Calculate the fixed part of utility -- IND*CT x CLASSES
     ############################################################################
     ls.utility <- lapply(ls.X, function(m.x) tcrossprod(m.x, t(m.beta.f)))
     

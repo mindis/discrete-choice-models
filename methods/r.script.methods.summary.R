@@ -183,7 +183,20 @@ fn.model.summary <- function(ls.X){
             print(m.corr)
             cat("\n")
         }
-        ##
+        
+        ########################################################################
+        ##  Print the matrix of restrictions if we are estimating the ECLC models
+        ########################################################################
+        if(Estim.Opt$b.equality.constrained){
+            str.col.names <- paste0("class.", seq_len(ncol(m.delta.expanded)))
+            m.tmp <- m.delta.expanded
+            colnames(m.tmp) <- str.col.names
+            cat("###################################################################")
+            cat("\n")
+            cat("The class restrictions: \n")
+            print(m.tmp)
+            cat("\n")
+        }
     } else {
         cat("###################################################################")
         cat("\n")
