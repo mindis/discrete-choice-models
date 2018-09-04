@@ -1,7 +1,7 @@
 ################################################################################
 ##  Name:         r.script.run.mnl.R
 ##  Created:      2018.08.02
-##  Last edited:  2018.08.02
+##  Last edited:  2018.09.04
 ##  Author:       Erlend Dancke Sandorf
 ##  Contributors: N/A
 ################################################################################
@@ -74,7 +74,7 @@ Estim.Opt <- list()
 ##                          outputs
 ################################################################################
 Estim.Opt$str.model.name <- "Multinomial Logit Model -- MNL"
-Estim.Opt$str.output.estimates <- "output.mnl.demo"
+Estim.Opt$str.output.estimates <- "output.mnl.coral"
 
 ################################################################################
 ##  Specify information about the data
@@ -89,10 +89,10 @@ Estim.Opt$str.output.estimates <- "output.mnl.demo"
 ##
 ##  The complete data function uses the information on i.ind, i.alt and i.task
 ################################################################################
-Estim.Opt$str.data <- "../data/data.demo.rds"
-Estim.Opt$b.complete.data <- TRUE
-Estim.Opt$i.ind <- 200L
-Estim.Opt$i.obs <- 2400L
+Estim.Opt$str.data <- "../data/data.coral.rds"
+Estim.Opt$b.complete.data <- FALSE
+Estim.Opt$i.ind <- 397L
+Estim.Opt$i.obs <- 4683L
 Estim.Opt$i.alts <- 3L
 Estim.Opt$i.tasks <- 12L
 
@@ -166,7 +166,7 @@ Estim.Opt$str.id <- "id"
 Estim.Opt$str.ct <- "ct"
 Estim.Opt$str.alt <- "alt"
 Estim.Opt$str.choice <- "choice"
-Estim.Opt$str.cost <-  "x4"
+Estim.Opt$str.cost <-  "cost"
 
 ################################################################################
 ##  Specify the fixed part of utility
@@ -176,7 +176,7 @@ Estim.Opt$str.cost <-  "x4"
 ##  
 ##  If no variables have non-random parameters - leave empty: c()
 ################################################################################
-Estim.Opt$str.fixed.par <- c("x4", "x1", "x2", "x3")
+Estim.Opt$str.fixed.par <- c("cost", "small", "large", "oil", "fish", "hab")
 
 ################################################################################
 ##  Estimate in willingness-to-pay space
@@ -319,7 +319,7 @@ Estim.Opt$d.multiplier <- 1.5
 Estim.Opt$i.seed <- 57888385L
 
 ##  Vector of starting values the length of the number of parameters
-v.param <- c(0, 0, 0, 0)
+v.param <- c(0, 0, 0, 0, 0, 0)
 
 ################################################################################
 ### Start running the model
