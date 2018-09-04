@@ -276,7 +276,7 @@ Estim.Opt$str.class.par <- c("const")
 ##  'b.equality.constrained'    If TRUE - impose an equality constraint where
 ##                              parameters/distributions are restricted to be
 ##                              equal or zero (i.e. a typical AN-A model)
-##  'b.mixture.probs'           If TRUE - calculate the class probabilities as
+##  'b.discrete.mixture'        If TRUE - calculate the class probabilities as
 ##                              as a mixture of the probabilities of 1/0 for 
 ##                              each attribute. If FALSE - use MNL probs.
 ##  'm.constraints'             A user supplied matrix of constraints containing
@@ -288,7 +288,7 @@ Estim.Opt$str.class.par <- c("const")
 ##                              do not consider only some levels to be constrained
 ################################################################################
 Estim.Opt$b.equality.constrained <- FALSE
-Estim.Opt$b.mixture.probs <- TRUE
+Estim.Opt$b.discrete.mixture <- TRUE
 Estim.Opt$m.constraints <- NULL 
 Estim.Opt$ls.constrained.par <- list()
 
