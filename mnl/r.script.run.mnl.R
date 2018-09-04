@@ -290,10 +290,7 @@ Estim.Opt$str.class.par <- c("const")
 Estim.Opt$b.equality.constrained <- FALSE
 Estim.Opt$b.mixture.probs <- TRUE
 Estim.Opt$m.constraints <- NULL 
-Estim.Opt$ls.constrained.par <- list(att1 = c("x1"),
-                                     att2 = c("x2"),
-                                     att3 = c("x3"),
-                                     att4 = c("x4"))
+Estim.Opt$ls.constrained.par <- list()
 
 ################################################################################
 ##  Specify information about starting values

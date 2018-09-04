@@ -74,7 +74,7 @@ Estim.Opt <- list()
 ##                          outputs
 ################################################################################
 Estim.Opt$str.model.name <- "Mixed Logit Model -- MIXL"
-Estim.Opt$str.output.estimates <- "output.mixl.demo"
+Estim.Opt$str.output.estimates <- "output.mixl.coral"
 
 ################################################################################
 ##  Specify information about the data
@@ -89,10 +89,10 @@ Estim.Opt$str.output.estimates <- "output.mixl.demo"
 ##
 ##  The complete data function uses the information on i.ind, i.alt and i.task
 ################################################################################
-Estim.Opt$str.data <- "../data/data.demo.rds"
-Estim.Opt$b.complete.data <- TRUE
-Estim.Opt$i.ind <- 200L
-Estim.Opt$i.obs <- 2400L
+Estim.Opt$str.data <- "../data/data.coral.rds"
+Estim.Opt$b.complete.data <- FALSE
+Estim.Opt$i.ind <- 397L
+Estim.Opt$i.obs <- 4683L
 Estim.Opt$i.alts <- 3L
 Estim.Opt$i.tasks <- 12L
 
@@ -166,7 +166,7 @@ Estim.Opt$str.id <- "id"
 Estim.Opt$str.ct <- "ct"
 Estim.Opt$str.alt <- "alt"
 Estim.Opt$str.choice <- "choice"
-Estim.Opt$str.cost <-  "x4"
+Estim.Opt$str.cost <-  "cost"
 
 ################################################################################
 ##  Specify the fixed part of utility
@@ -208,10 +208,10 @@ Estim.Opt$b.wtp.space <- FALSE
 ################################################################################
 Estim.Opt$b.make.draws <- TRUE
 Estim.Opt$b.correlation <- FALSE
-Estim.Opt$str.draws.type <- "sobol" 
+Estim.Opt$str.draws.type <- "halton" 
 Estim.Opt$i.draws <- 50L
-Estim.Opt$i.drop <- 0L
-Estim.Opt$b.scramble <- TRUE
+Estim.Opt$i.drop <- 10L
+Estim.Opt$b.scramble <- FALSE
 Estim.Opt$i.scrambling.type <- 3L 
 
 ################################################################################
@@ -229,7 +229,8 @@ Estim.Opt$i.scrambling.type <- 3L
 ##
 ##  If no variables have random parameters - leave empty: list()
 ################################################################################
-Estim.Opt$ls.rand.par <- list(x4 = "-ln", x3 = "n", x2 = "n", x1 = "n")
+Estim.Opt$ls.rand.par <- list(cost = "-ln", small = "n", large = "n",
+                              oil = "n", fish = "n", hab = "n")
 
 ################################################################################
 ##  Specify a list of variables where the mean of the parameter distribution is
@@ -241,7 +242,7 @@ Estim.Opt$ls.rand.par <- list(x4 = "-ln", x3 = "n", x2 = "n", x1 = "n")
 ##                      interactoins. If FALSE - assumed to be the same across
 ##                      classes.
 ################################################################################
-Estim.Opt$ls.het.par <-  list(x3 = c("male", "age"), x2 = c("male"))
+Estim.Opt$ls.het.par <-  list()
 Estim.Opt$b.class.specific <- TRUE
 
 ################################################################################
@@ -290,10 +291,7 @@ Estim.Opt$str.class.par <- c("const")
 Estim.Opt$b.equality.constrained <- FALSE
 Estim.Opt$b.mixture.probs <- TRUE
 Estim.Opt$m.constraints <- NULL 
-Estim.Opt$ls.constrained.par <- list(att1 = c("x1"),
-                                     att2 = c("x2"),
-                                     att3 = c("x3"),
-                                     att4 = c("x4"))
+Estim.Opt$ls.constrained.par <- list()
 
 ################################################################################
 ##  Specify information about starting values
@@ -319,7 +317,7 @@ Estim.Opt$d.multiplier <- 1.5
 Estim.Opt$i.seed <- 57888385L
 
 ##  Vector of starting values the length of the number of parameters
-v.param <- c(rep(0, 4), rep(0.1, 4), rep(0, 3))
+v.param <- c(rep(0, 6), rep(0.1, 6))
 
 ################################################################################
 ### Start running the model
