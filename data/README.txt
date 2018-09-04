@@ -1,25 +1,25 @@
 ################################################################################
 ##  Name:         README.txt
 ##  Created:      2018.08.31
-##  Last edited:  2018.08.31
+##  Last edited:  2018.09.04
 ##  Author:       Erlend Dancke Sandorf
 ################################################################################
 
 ################################################################################
 ##  Data structure
 ################################################################################
-The data needs to be stored in long format (one row per alternative). The data must include an id-variable for the individual that is continuous starting at 1, a choice task variable that is continuous starting at 1 and an alternative variable that is continuous starting at 1. 
+The data must be stored in long format
 
 ################################################################################
 ##  Cold water coral data
 ################################################################################
-Dataset containing choices from 397 individuals answering 12 choice tasks containing 2 experimentally designed alternatives and a status quo. The data is "incomplete", i.e. not all individuals answered all choice tasks. There are some missing values for some of the socio-demographic variables. 
+The dataset is unbalanced, i.e. not all individuals answered all choice tasks.
 
 Individuals: 	397
 Choice tasks: 	12
 Alternatives: 	3
 Observations:	4683
-Variables:	26
+Variables:	14
 
 id		- Individual identification variable
 ct		- Choice task identification variable
@@ -32,11 +32,9 @@ oil		- Indicator for whether the proposed protected area is important for the oi
 fish		- Indicator for whether the proposed protected area is important for the fishing industry (Attribute 2)
 hab		- Indicator for whether the proposed area is important habitat for fish (Attribute 3)
 cost		- Cost measured as a lump sum increase in annual taxes (Attribute 4)
-complete	- Indicates the number of completed choice tasks
-out		- Indicator for the choice tasks where no choice was made
 treatment	- Indicator for whether a respondent received his or her score
-score		- Sce on the CWC quiz
-male		- Indicator for male respondent
+score		- An individuals score on the quiz
+above.median    - An indicator variable for whether the individual scored above the median
 
 ################################################################################
 ##  References
