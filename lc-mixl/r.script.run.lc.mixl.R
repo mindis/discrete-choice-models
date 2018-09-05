@@ -74,7 +74,7 @@ Estim.Opt <- list()
 ##                          outputs
 ################################################################################
 Estim.Opt$str.model.name <- "Latent Class - Mixed Logit Model -- LC-MIXL"
-Estim.Opt$str.output.estimates <- "output.lc.mixl.demo"
+Estim.Opt$str.output.estimates <- "output.lc.mixl.coral"
 
 ################################################################################
 ##  Specify information about the data
@@ -89,10 +89,10 @@ Estim.Opt$str.output.estimates <- "output.lc.mixl.demo"
 ##
 ##  The complete data function uses the information on i.ind, i.alt and i.task
 ################################################################################
-Estim.Opt$str.data <- "../data/data.demo.rds"
-Estim.Opt$b.complete.data <- TRUE
-Estim.Opt$i.ind <- 200L
-Estim.Opt$i.obs <- 2400L
+Estim.Opt$str.data <- "../data/data.coral.rds"
+Estim.Opt$b.complete.data <- FALSE
+Estim.Opt$i.ind <- 397L
+Estim.Opt$i.obs <- 4683L
 Estim.Opt$i.alts <- 3L
 Estim.Opt$i.tasks <- 12L
 
@@ -134,7 +134,7 @@ Estim.Opt$b.final.hessian <- FALSE
 Estim.Opt$b.parallel <- FALSE
 Estim.Opt$str.output.debug <- "" 
 Estim.Opt$b.print.worker.info <- TRUE 
-Estim.Opt$i.cores <- 3L
+Estim.Opt$i.cores <- 2L
 Estim.Opt$str.packages <- c("maxLik", "numDeriv", "matrixStats", "msm", "pryr",
                             "MASS")
 
@@ -150,7 +150,7 @@ Estim.Opt$str.packages <- c("maxLik", "numDeriv", "matrixStats", "msm", "pryr",
 ################################################################################
 Estim.Opt$b.robust.vcov           <- TRUE
 Estim.Opt$b.adjusted.robust.vcov  <- TRUE
-Estim.Opt$b.rescale.utility <- TRUE 
+Estim.Opt$b.rescale.utility <- FALSE
 
 ################################################################################
 ##  Specify strings including the names of the variables in your data
@@ -166,7 +166,7 @@ Estim.Opt$str.id <- "id"
 Estim.Opt$str.ct <- "ct"
 Estim.Opt$str.alt <- "alt"
 Estim.Opt$str.choice <- "choice"
-Estim.Opt$str.cost <-  "x4"
+Estim.Opt$str.cost <-  "cost"
 
 ################################################################################
 ##  Specify the fixed part of utility
@@ -208,10 +208,10 @@ Estim.Opt$b.wtp.space <- FALSE
 ################################################################################
 Estim.Opt$b.make.draws <- TRUE
 Estim.Opt$b.correlation <- FALSE
-Estim.Opt$str.draws.type <- "sobol" 
+Estim.Opt$str.draws.type <- "halton" 
 Estim.Opt$i.draws <- 50L
-Estim.Opt$i.drop <- 0L
-Estim.Opt$b.scramble <- TRUE
+Estim.Opt$i.drop <- 10L
+Estim.Opt$b.scramble <- FALSE
 Estim.Opt$i.scrambling.type <- 3L 
 
 ################################################################################
@@ -229,7 +229,8 @@ Estim.Opt$i.scrambling.type <- 3L
 ##
 ##  If no variables have random parameters - leave empty: list()
 ################################################################################
-Estim.Opt$ls.rand.par <- list(x4 = "-ln", x3 = "n", x2 = "n", x1 = "n")
+Estim.Opt$ls.rand.par <- list(cost = "-ln", small = "n", large = "n",
+                              oil = "n", fish = "n", hab = "n")
 
 ################################################################################
 ##  Specify a list of variables where the mean of the parameter distribution is
@@ -268,7 +269,7 @@ Estim.Opt$str.scale.par <- c()
 ################################################################################
 Estim.Opt$b.latent.class <- TRUE
 Estim.Opt$i.classes <- 2L
-Estim.Opt$str.class.par <- c("const", "male")
+Estim.Opt$str.class.par <- c("const")
 
 ################################################################################
 ##  Specify equality constraints (to use in AN-A models)
@@ -276,24 +277,29 @@ Estim.Opt$str.class.par <- c("const", "male")
 ##  'b.equality.constrained'    If TRUE - impose an equality constraint where
 ##                              parameters/distributions are restricted to be
 ##                              equal or zero (i.e. a typical AN-A model)
-##  'b.mixture.probs'           If TRUE - calculate the class probabilities as
+##  'b.discrete.mixture           If TRUE - calculate the class probabilities as
 ##                              as a mixture of the probabilities of 1/0 for 
 ##                              each attribute. If FALSE - use MNL probs.
 ##  'm.constraints'             A user supplied matrix of constraints containing
 ##                              0 and 1. Each row an attribute and each column
-##                              a class constraint. If NULL - estimate the full
-##                              2^k. Use same order as in 'str.fixed.par'
+##                              a class constraint. Relevant rows are repeated
+##                              based on the specification in ls.constrained.par.
+##                              Use same order as in 'str.fixed.par'. If a matrix
+##                              is supplied then we cannot calculate probabilities
+##                              as a discrete mixture. 
+##                              If NULL - estimate the full 2^k. 
 ##  'ls.constrained.par'        List of strings containing the attributes that
 ##                              are constrained. In case of dummy coding and you
-##                              do not consider only some levels to be constrained
+##                              do not consider only some levels to be constrained,
+##                              you specify as a list which variables are part of
+##                              the same attribute.
+##                              The names of the attributes must be in the same
+##                              order as ls.rand.par or fixed.par
 ################################################################################
 Estim.Opt$b.equality.constrained <- FALSE
-Estim.Opt$b.mixture.probs <- TRUE
+Estim.Opt$b.discrete.mixture <- TRUE
 Estim.Opt$m.constraints <- NULL 
-Estim.Opt$ls.constrained.par <- list(att1 = c("x1"),
-                                     att2 = c("x2"),
-                                     att3 = c("x3"),
-                                     att4 = c("x4"))
+Estim.Opt$ls.constrained.par <- list()
 
 ################################################################################
 ##  Specify information about starting values
@@ -319,7 +325,7 @@ Estim.Opt$d.multiplier <- 1.5
 Estim.Opt$i.seed <- 57888385L
 
 ##  Vector of starting values the length of the number of parameters
-v.param <- c(rep(0, 8), rep(0.1, 8), 0.5, 0.5)
+v.param <- c(runif(12), rep(0.1, 12), 0.5)
 
 ################################################################################
 ### Start running the model

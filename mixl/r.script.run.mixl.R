@@ -150,7 +150,7 @@ Estim.Opt$str.packages <- c("maxLik", "numDeriv", "matrixStats", "msm", "pryr",
 ################################################################################
 Estim.Opt$b.robust.vcov           <- TRUE
 Estim.Opt$b.adjusted.robust.vcov  <- TRUE
-Estim.Opt$b.rescale.utility <- TRUE 
+Estim.Opt$b.rescale.utility <- FALSE 
 
 ################################################################################
 ##  Specify strings including the names of the variables in your data
@@ -277,16 +277,24 @@ Estim.Opt$str.class.par <- c("const")
 ##  'b.equality.constrained'    If TRUE - impose an equality constraint where
 ##                              parameters/distributions are restricted to be
 ##                              equal or zero (i.e. a typical AN-A model)
-##  'b.discrete.mixture'        If TRUE - calculate the class probabilities as
+##  'b.discrete.mixture           If TRUE - calculate the class probabilities as
 ##                              as a mixture of the probabilities of 1/0 for 
 ##                              each attribute. If FALSE - use MNL probs.
 ##  'm.constraints'             A user supplied matrix of constraints containing
 ##                              0 and 1. Each row an attribute and each column
-##                              a class constraint. If NULL - estimate the full
-##                              2^k. Use same order as in 'str.fixed.par'
+##                              a class constraint. Relevant rows are repeated
+##                              based on the specification in ls.constrained.par.
+##                              Use same order as in 'str.fixed.par'. If a matrix
+##                              is supplied then we cannot calculate probabilities
+##                              as a discrete mixture. 
+##                              If NULL - estimate the full 2^k. 
 ##  'ls.constrained.par'        List of strings containing the attributes that
 ##                              are constrained. In case of dummy coding and you
-##                              do not consider only some levels to be constrained
+##                              do not consider only some levels to be constrained,
+##                              you specify as a list which variables are part of
+##                              the same attribute.
+##                              The names of the attributes must be in the same
+##                              order as ls.rand.par or fixed.par
 ################################################################################
 Estim.Opt$b.equality.constrained <- FALSE
 Estim.Opt$b.discrete.mixture <- TRUE
@@ -317,7 +325,7 @@ Estim.Opt$d.multiplier <- 1.5
 Estim.Opt$i.seed <- 57888385L
 
 ##  Vector of starting values the length of the number of parameters
-v.param <- c(rep(0, 6), rep(0.1, 6))
+v.param <- c(runif(6), rep(0.1, 6))
 
 ################################################################################
 ### Start running the model
