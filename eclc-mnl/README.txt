@@ -1,7 +1,7 @@
 ################################################################################
 ##  Name:         README.txt
 ##  Created:      2018.08.09
-##  Last edited:  2018.08.09
+##  Last edited:  2018.09.05
 ##  Author:       Erlend Dancke Sandorf
 ################################################################################
 
@@ -10,6 +10,9 @@
 ################################################################################
 
 This is the equality constrained latent class model (ECLC) implemented to infer attribute non-attendance. The underlying preference structure is assumed to be a MNL model. By default the model will consider the full 2^k AN-A patterns, but the user can supply a matrix of restrictions to consider a subset. This matrix must be of the correct dimensions. Few checks are built in to ensure that this is the case and it is up to the user to do this correctly. The class probabilities can be estimated using a MNL model OR if the option 'b.discrete.mixture' is TRUE, a discrete mixture distribution will be used and the model is equivalen to the Endogenous Attribute Non-Attendance model developed by Arne Risa Hole. 
+
+Probabilities of attendance: 1/(1 + exp(-(bZ))
+
 
 ################################################################################
 ##  Notes on use and estimation
@@ -22,6 +25,11 @@ This is the equality constrained latent class model (ECLC) implemented to infer 
 - You specify your model by changing the options in "r.script.run.eclc.mnl.R". This is the only file you need to change to run your model. The last line of this file: "fn.run.model()", will initiate the run sequence. 
 
 - A completed model will store the model object as a .rds file and the output as a .txt file for easy inspection and use in post-estimation.
+
+- The model is very susceptible to local optima.
+
+- The use of a discrete mixture approach to calculate the class probabilities requires that the full 2^k is considered. If you supply a user defined matrix of equality constraints, use the mnl probs. No checks are currently built in to aid the user. 
+
 
 ################################################################################
 ##  References
