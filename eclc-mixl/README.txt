@@ -1,7 +1,7 @@
 ################################################################################
 ##  Name:         README.txt
 ##  Created:      2018.08.02
-##  Last edited:  2018.08.08
+##  Last edited:  2018.09.05
 ##  Author:       Erlend Dancke Sandorf
 ################################################################################
 
@@ -9,4 +9,4 @@
 ##  Equality Constrained Latent Class - Mixed Logit - LC - MIXL
 ################################################################################
 
-This model is not currently programmed
+The model works, but is not fully tested. Updates will follow.

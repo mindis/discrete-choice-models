@@ -299,10 +299,10 @@ Estim.Opt$str.class.par <- c("const", "above.median")
 Estim.Opt$b.equality.constrained <- TRUE
 Estim.Opt$b.discrete.mixture <- TRUE
 Estim.Opt$m.constraints <- NULL 
-Estim.Opt$ls.constrained.par <- list(cost = c("cost"),
-                                     hab = c("hab"),
+Estim.Opt$ls.constrained.par <- list(size = c("small", "large"),
                                      industry = c("oil", "fish"),
-                                     size = c("small", "large"))
+                                     hab = c("hab"),
+                                     cost = c("cost"))
 
 ################################################################################
 ##  Specify information about starting values
@@ -329,15 +329,6 @@ Estim.Opt$i.seed <- 57888385L
 
 ##  Vector of starting values the length of the number of parameters
 v.param <- c(runif(6), rep(0.1, 6), 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5)
-
-v.param <- c(3.9776 ,      4.7699   ,  -0.26409 ,     0.28835   ,    2.1224,       1.8439,     -0.66653  ,    -1.9307,
-             -2.3742 ,      2.2785 ,     -1.8365 ,      1.5573 , 
-             -0.27348 ,  0.33711  ,
-             -0.29593 ,     0.32495,
-             1.1023   ,  15.243, 
-             0.54465 ,-0.65520
-)
-
 
 ################################################################################
 ### Start running the model

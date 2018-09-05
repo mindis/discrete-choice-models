@@ -16,6 +16,7 @@ fn.log.lik <- function(v.param){
     ##  Check if we are calculating probabilities using a discrete mixture
     if(Estim.Opt$b.discrete.mixture){
         ##  This is the discrete mixture
+        ##  The probs are calculated in the order of Estim.Opt$ls.constrained.par
         v.theta <- v.param[ls.str.par.names[["str.class"]]]
         
         ls.class.prob <- lapply(seq_along(ls.C), function(q){
@@ -133,10 +134,11 @@ fn.log.lik <- function(v.param){
         return(t(mT))
     })
     
-    ##  Keep an eye on this reverse argument to deal with the transpose
+    ##  Turn into a list
     ls.delta.expanded <- lapply(as.list(as.data.frame(m.delta.expanded)),
                                 function(vX) {
-                                    return(rev(vX))
+                                    # return(rev(vX))
+                                    return(vX)
                                 })
     
     ##  Multiply with the restriction.
