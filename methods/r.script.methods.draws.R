@@ -129,7 +129,7 @@ fn.generate.draws <- function(Estim.Opt){
     i.K <- length(Estim.Opt$ls.rand.par)
     
     ##  If we are estimating LC-MIXL
-    if(Estim.Opt$b.latent.class){
+    if(Estim.Opt$b.latent.class && !Estim.Opt$b.equality.constrained){
         i.K <- length(Estim.Opt$ls.rand.par) * Estim.Opt$i.classes
     }
     
