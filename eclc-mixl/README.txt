@@ -10,3 +10,5 @@
 ################################################################################
 
 The model works, but is not fully tested. Updates will follow.
+
+Only works if all parameters are random. Functionality for fixed parameters is currently not working.
