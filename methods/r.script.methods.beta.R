@@ -1,7 +1,7 @@
 ################################################################################
 ##  Name:         r.script.methods.beta.R
 ##  Created:      2018.08.02
-##  Last edited:  2018.08.02
+##  Last edited:  2018.09.10
 ##  Author:       Erlend Dancke Sandorf
 ##  Contributors: N/A
 ################################################################################
@@ -9,241 +9,239 @@
 ################################################################################
 ##  Function for generating beta names
 ################################################################################
-fn.make.beta.names <- function(Estim.Opt){
+fnMakeBetaNames <- function(EstimOpt){
+    ##  Define some overall parameters
+    iQ <- EstimOpt$iQ
+    
     ##  Create empty placeholders for the strings of parameter names
-    str.fixed <- str.mean <- str.std <- str.het <- str.scale <- str.class <- NULL
+    strP_fixed <- strP_mean <- strP_std <- strP_het <- strP_scale <- strP_class <- NULL
     
     ##  Fixed parameters
-    if(length(Estim.Opt$str.fixed.par) > 0){
-        str.fixed <- paste0("beta.", Estim.Opt$str.fixed.par)
+    if(length(EstimOpt$strP_fixed) > 0){
+        iK_f <- length(EstimOpt$strP_fixed)
+        strP_fixed <- paste0("beta.", EstimOpt$strP_fixed)
         
         ##  If we are estimating LC-MNL and don't have equality constraints imposed
-        if(Estim.Opt$b.latent.class && !Estim.Opt$b.equality.constrained){
-            str.tmp <- Estim.Opt$str.fixed.par
-            i.Q <- Estim.Opt$i.classes
-            str.fixed <- paste("beta", rep(str.tmp, times = i.Q),
-                               rep(seq_len(i.Q), each = length(str.tmp)),
-                               sep = ".")
+        if(EstimOpt$bLatentClass && !EstimOpt$bEqualityConstrained){
+            iQ <- EstimOpt$iQ
+            strP_fixed <- paste("beta", rep(EstimOpt$strP_fixed, times = iQ),
+                                rep(seq_len(iQ), each = iK_f), sep = ".")
         }
     }
     
     ##  Random parameters
-    if(length(Estim.Opt$ls.rand.par) > 0){
-        str.tmp <- names(Estim.Opt$ls.rand.par)
-        str.mean <- paste0("beta.", str.tmp)
-        str.std <- paste0("sigma.", str.tmp)
-        if(Estim.Opt$b.correlation){
-            str.std <- NULL
-            i.K <- length(Estim.Opt$ls.rand.par)
-            for(i in 1L:i.K){
-                str.std <- c(str.std,
-                             paste("sigma", str.tmp[i], str.tmp[i:i.K],
-                                   sep = "."))
+    if(length(EstimOpt$lsP_rand) > 0){
+        strP_tmp <- names(EstimOpt$lsP_rand)
+        strP_mean <- paste0("beta.", strP_tmp)
+        strP_std <- paste0("sigma.", strP_tmp)
+        if(EstimOpt$bCorrelation){
+            strP_std <- NULL
+            iK_r <- length(EstimOpt$lsP_rand)
+            for(k in 1L:iK_r){
+                strP_std <- c(strP_std,
+                              paste("sigma", strP_tmp[k], strP_tmp[k:iK_r],
+                                    sep = "."))
             }
         }
         
         ##  If we are estimating LC - MIXL and don't have equality constraints imposed
-        if(Estim.Opt$b.latent.class && !Estim.Opt$b.equality.constrained){
-            str.tmp <- names(Estim.Opt$ls.rand.par)
-            i.Q <- Estim.Opt$i.classes
-            str.mean <- paste("beta", rep(str.tmp, times = i.Q),
-                              rep(seq_len(i.Q), each = length(str.tmp)),
+        if(EstimOpt$bLatentClass && !EstimOpt$bEqualityConstrained){
+            strP_tmp <- names(EstimOpt$lsP_rand)
+            strP_mean <- paste("beta", rep(strP_tmp, times = iQ),
+                               rep(seq_len(iQ), each = length(strP_tmp)),
+                               sep = ".")
+            strP_std <- paste("sigma", rep(strP_tmp, times = iQ),
+                              rep(seq_len(iQ), each = length(strP_tmp)),
                               sep = ".")
-            str.std <- paste("sigma", rep(str.tmp, times = i.Q),
-                             rep(seq_len(i.Q), each = length(str.tmp)),
-                             sep = ".")
-            if(Estim.Opt$b.correlation){
-                str.std <- NULL
-                i.K <- length(Estim.Opt$ls.rand.par)
-                for(i in 1L:i.K){
-                    str.std <- c(str.std,
-                                 paste("sigma", str.tmp[i], str.tmp[i:i.K],
-                                       sep = "."))
+            if(EstimOpt$bCorrelation){
+                strP_std <- NULL
+                iK_r <- length(EstimOpt$lsP_rand)
+                for(i in 1L:iK_r){
+                    strP_std <- c(strP_std,
+                                  paste("sigma", strP_tmp[i], strP_tmp[i:iK_r],
+                                        sep = "."))
                 }
-                str.std <- paste(rep(str.std, times = i.Q),
-                                 rep(seq_len(i.Q), each = length(str.std)),
-                                 sep = ".")
+                strP_std <- paste(rep(strP_std, times = iQ),
+                                  rep(seq_len(iQ), each = length(strP_std)),
+                                  sep = ".")
             }
         }
     }
-
+    
     ##  Interactions with random parameters
-    if(length(Estim.Opt$ls.het.par) > 0 ){
-        str.tmp <- names(Estim.Opt$ls.het.par)
-        str.het <- unlist(lapply(str.tmp, function(x){
-            outer(x, Estim.Opt$ls.het.par[[x]], FUN = paste, sep = ".")
+    if(length(EstimOpt$lsP_het) > 0 ){
+        strP_tmp <- names(EstimOpt$lsP_het)
+        strP_het <- unlist(lapply(strP_tmp, function(x){
+            outer(x, EstimOpt$lsP_het[[x]], FUN = paste, sep = ".")
         }))
-        str.het <- paste0("phi.", str.het)
+        strP_het <- paste0("phi.", strP_het)
         ##  If we are estimating LC-MIXL and don't have equality constraints imposed
-        if(Estim.Opt$b.latent.class && Estim.Opt$b.class.specific && !Estim.Opt$b.equality.constrained){
-            i.Q <- Estim.Opt$i.classes
-            str.het <- paste(rep(str.het, times = i.Q),
-                             rep(seq_len(i.Q), each = length(str.het)),
-                             sep = ".")
+        if(EstimOpt$bLatentClass && EstimOpt$bClassSpecific && !EstimOpt$bEqualityConstrained){
+            strP_het <- paste(rep(strP_het, times = iQ),
+                              rep(seq_len(iQ), each = length(strP_het)),
+                              sep = ".")
         }
     }
     
     ##  Relative scale parameters
-    if(Estim.Opt$b.relative.scale){
-        i.K <- length(Estim.Opt$str.scale.par)
-        str.scale <- paste0("lambda.", Estim.Opt$str.scale.par[-c(i.K)])
+    if(EstimOpt$bRelativeScale){
+        iK_s <- length(EstimOpt$strP_scale)
+        strP_scale <- paste0("lambda.", EstimOpt$strP_scale[-c(iK_s)])
     }
     
     ## Class probability function parameters
-    if(Estim.Opt$b.latent.class){
-        i.K <- length(Estim.Opt$str.class.par)
-        i.Q <- Estim.Opt$i.classes
+    if(EstimOpt$bLatentClass){
+        iK_c <- length(EstimOpt$strP_class)
+        iQ <- EstimOpt$iQ
         
         ## Change the number of classes if we are estimating equality constraints
-        if(Estim.Opt$b.equality.constrained){
-            if(Estim.Opt$b.discrete.mixture){
+        if(EstimOpt$bEqualityConstrained){
+            if(EstimOpt$bDiscreteMixture){
                 ##  Add the +1 to avoid another if - statement
-                i.Q <- length(Estim.Opt$ls.constrained.par) + 1L
+                iQ <- length(EstimOpt$lsP_constrained) + 1L
             } else {
-                if(!is.null(Estim.Opt$m.constraints)){
-                    i.Q <- ncol(Estim.Opt$m.constraints)
+                if(!is.null(EstimOpt$mConstraints)){
+                    iQ <- ncol(EstimOpt$mConstraints)
                 } else {
-                    i.Q <- 2L^length(Estim.Opt$ls.constrained.par)
+                    iQ <- 2L^length(EstimOpt$lsP_constrained)
                 }
             }
         }
         
-        str.class <- paste("theta",
-                           rep(Estim.Opt$str.class.par, times = (i.Q - 1L)),
-                           rep(seq_len((i.Q - 1L)), each = i.K),
-                           sep = ".")
+        strP_class <- paste("theta",
+                            rep(EstimOpt$strP_class, times = (iQ - 1L)),
+                            rep(seq_len((iQ - 1L)), each = iK_c),
+                            sep = ".")
     }
     
     ##  Return the list of parameter names
-    return(list(str.fixed = str.fixed,
-                str.mean = str.mean,
-                str.std = str.std,
-                str.het = str.het,
-                str.scale = str.scale,
-                str.class = str.class))
+    return(list(strP_fixed = strP_fixed,
+                strP_mean = strP_mean,
+                strP_std = strP_std,
+                strP_het = strP_het,
+                strP_scale = strP_scale,
+                strP_class = strP_class))
 }
 
 ################################################################################
 ##  Function for generating betas
 ################################################################################
-fn.make.beta <- function(Estim.Opt, v.beta, v.sigma, m.draws){
+fnMakeBeta <- function(EstimOpt, vP_beta, vP_sigma, mDraws){
     ##  Check that the specified distributions are valid
-    if(any(Estim.Opt$ls.rand.par %in% c("n", "ln", "-ln",
-                                        "u", "-cu", "t",
-                                        "ct", "sb") == FALSE)){
+    if(any(EstimOpt$lsP_rand %in% c("n", "ln", "-ln",
+                                    "u", "-cu", "t",
+                                    "ct", "sb") == FALSE)){
         stop("Cannot recognize the specified distributions.")
     }
     
     ##  IND*DRAWS x NVAR
-    colnames(m.draws) <- names(Estim.Opt$ls.rand.par)
+    colnames(mDraws) <- names(EstimOpt$lsP_rand)
     
     ############################################################################
     ##  Function to transform the distributions
     ############################################################################
-    fn.transform.distributions <- function(i.x){
+    fnTransformDistributions <- function(k){
         ##  Get the position of the draws for the corresponding beta
-        # i.pos <- grep(names(Estim.Opt$ls.rand.par[i.x]), names(v.beta))
-        i.pos <- which(names(v.beta) == paste0("beta.",
-                                               names(Estim.Opt$ls.rand.par)[i.x]))
+        iP <- which(names(vP_beta) == paste0("beta.", names(EstimOpt$lsP_rand)[k]))
         
         ##  Negative log-normal
-        if(Estim.Opt$ls.rand.par[[i.x]] == "-ln"){
-            if(Estim.Opt$b.correlation){
-                v.tmp <- exp(m.beta[, i.pos]) * -1
+        if(EstimOpt$lsP_rand[[k]] == "-ln"){
+            if(EstimOpt$bCorrelation){
+                vP_tmp <- exp(mBeta[, iP]) * -1
             } else {
-                v.tmp <- exp(v.beta[i.pos] + v.sigma[i.pos] * m.draws[, i.pos, drop = FALSE]) * -1
+                vP_tmp <- exp(vP_beta[iP] + vP_sigma[iP] * mDraws[, iP, drop = FALSE]) * -1
             }
         }
         
         ##  Log-normal
-        if(Estim.Opt$ls.rand.par[[i.x]] == "ln"){
-            if(Estim.Opt$b.correlation){
-                v.tmp <- exp(m.beta[, i.pos])
+        if(EstimOpt$lsP_rand[[k]] == "ln"){
+            if(EstimOpt$bCorrelation){
+                vP_tmp <- exp(mBeta[, iP])
             } else {
-                v.tmp <- exp(v.beta[i.pos] + v.sigma[i.pos] * m.draws[, i.pos, drop = FALSE])
+                vP_tmp <- exp(vP_beta[iP] + vP_sigma[iP] * mDraws[, iP, drop = FALSE])
             }
         }
         
         ##  Normal
-        if(Estim.Opt$ls.rand.par[[i.x]] == "n"){
-            if(Estim.Opt$b.correlation){
-                v.tmp <- m.beta[, i.pos]
+        if(EstimOpt$lsP_rand[[k]] == "n"){
+            if(EstimOpt$bCorrelation){
+                vP_tmp <- mBeta[, iP]
             } else {
-                v.tmp <- v.beta[i.pos] + v.sigma[i.pos] * m.draws[, i.pos, drop = FALSE]
+                vP_tmp <- vP_beta[iP] + vP_sigma[iP] * mDraws[, iP, drop = FALSE]
             }
         }
         
         ##  Uniform -1, 1
-        if(Estim.Opt$ls.rand.par[[i.x]] == "u"){
-            v.tmp.draws <- 2 * pnorm(m.draws[, i.pos, drop = FALSE]) - 1
-            v.tmp <- v.beta[i.pos] + v.sigma[i.pos] * v.tmp.draws
+        if(EstimOpt$lsP_rand[[k]] == "u"){
+            vDraws_tmp <- 2 * pnorm(mDraws[, iP, drop = FALSE]) - 1
+            vP_tmp <- vP_beta[iP] + vP_sigma[iP] * vDraws_tmp
         }
         
         ##  Constrained negative uniform
-        if(Estim.Opt$ls.rand.par[[i.x]] == "-cu"){
-            v.tmp.draws <- 2 * pnorm(m.draws[, i.pos, drop = FALSE]) - 1
-            v.tmp <- exp(v.beta[i.pos] + v.sigma[i.pos] * v.tmp.draws) * -1
+        if(EstimOpt$lsP_rand[[k]] == "-cu"){
+            vDraws_tmp <- 2 * pnorm(mDraws[, iP, drop = FALSE]) - 1
+            vP_tmp <- exp(vP_beta[iP] + vP_sigma[iP] * vDraws_tmp) * -1
         }
         
         ##  Triangular
-        if(Estim.Opt$ls.rand.par[[i.x]] == "t"){
-            v.tmp.draws <- pnorm(m.draws[, i.pos, drop = FALSE])
-            v.b.tmp.draws <- v.tmp.draws < 0.5
-            v.tmp.draws <- v.b.tmp.draws * (sqrt(2 * v.tmp.draws) - 1) +
-                !v.b.tmp.draws * (1 - sqrt(2 * (1 - v.tmp.draws)))
-            v.tmp <- v.beta[i.pos] + v.sigma[i.pos] * v.tmp.draws
+        if(EstimOpt$lsP_rand[[k]] == "t"){
+            vDraws_tmp <- pnorm(mDraws[, iP, drop = FALSE])
+            bDraws_tmp <- vDraws_tmp < 0.5
+            vDraws_tmp <- bDraws_tmp * (sqrt(2 * vDraws_tmp) - 1) +
+                !bDraws_tmp * (1 - sqrt(2 * (1 - vDraws_tmp)))
+            vP_tmp <- vP_beta[iP] + vP_sigma[iP] * vDraws_tmp
         }
         
         ##  Constrained triangular
-        if(Estim.Opt$ls.rand.par[[i.x]] == "ct"){
-            v.tmp.draws <- pnorm(m.draws[, i.pos, drop = FALSE])
-            v.b.tmp.draws <- v.tmp.draws < 0.5
-            v.tmp.draws <- v.b.tmp.draws * (sqrt(2 * v.tmp.draws) - 1) +
-                !v.b.tmp.draws * (1 - sqrt(2 * (1 - v.tmp.draws)))
-            d.spread <- v.beta[i.pos] * (1 / (1 + exp(v.sigma[i.pos])))
-            v.tmp <- v.beta[i.pos] + d.spread * v.tmp.draws
+        if(EstimOpt$lsP_rand[[k]] == "ct"){
+            vDraws_tmp <- pnorm(mDraws[, iP, drop = FALSE])
+            bDraws_tmp <- vDraws_tmp < 0.5
+            vDraws_tmp <- bDraws_tmp * (sqrt(2 * vDraws_tmp) - 1) +
+                !bDraws_tmp * (1 - sqrt(2 * (1 - vDraws_tmp)))
+            d.spread <- vP_beta[iP] * (1 / (1 + exp(vP_sigma[iP])))
+            vP_tmp <- vP_beta[iP] + d.spread * vDraws_tmp
         }
         
         ##  Johnson SB -- Not set up to work properly
-        # if(Estim.Opt$ls.rand.par[[i.x]] == "sb"){
-        #     v.tmp <- v.beta[i.pos] + v.sigma[i.pos] * m.draws[, i.pos, drop = FALSE]
-        #     v.tmp <- exp(v.tmp) / (1 + exp(v.tmp))
+        # if(EstimOpt$lsP_rand[[k]] == "sb"){
+        #     vP_tmp <- vP_beta[iP] + vP_sigma[iP] * mDraws[, iP, drop = FALSE]
+        #     vP_tmp <- exp(vP_tmp) / (1 + exp(vP_tmp))
         # }
         
         ##  Return the transformed parameter
-        return(v.tmp)
+        return(vP_tmp)
     }
     
     ############################################################################
     ##  Check for correlation
     ############################################################################
-    if(Estim.Opt$b.correlation){
-        if(any(Estim.Opt$ls.rand.par %in% c("-ln", "ln", "n") == FALSE)){
+    if(EstimOpt$bCorrelation){
+        if(any(EstimOpt$lsP_rand %in% c("-ln", "ln", "n") == FALSE)){
             stop("Only distributions in the family of normals can be correlated")
         }
         
         ##  Set up the lower Cholesky matrix
-        i.K <- length(Estim.Opt$ls.rand.par)
-        m.L <- matrix(0L, i.K, i.K)
-        m.L[lower.tri(m.L, diag = TRUE)] <- v.sigma
+        iK <- length(EstimOpt$lsP_rand)
+        mL <- matrix(0L, iK, iK)
+        mL[lower.tri(mL, diag = TRUE)] <- vP_sigma
         
         ##  Calculate the betas
-        m.sigma <- tcrossprod(m.L, m.draws)
+        mSigma <- tcrossprod(mL, mDraws)
         
         ##  IND*DRAWS x NVAR
-        m.beta <- v.beta + m.sigma
-        m.beta <- t(m.beta)
+        mBeta <- vP_beta + mSigma
+        mBeta <- t(mBeta)
     } else {
         ##  Transform the distributions
-        ls.beta <- lapply(seq_along(Estim.Opt$ls.rand.par), function(i.x){
-            v.x <- fn.transform.distributions(i.x)
+        lsBeta <- lapply(seq_along(EstimOpt$lsP_rand), function(k){
+            vB <- fnTransformDistributions(k)
         })
         
-        m.beta <- Reduce(cbind, ls.beta)
+        mBeta <- Reduce(cbind, lsBeta)
     }
-
+    
     ## IND*DRAWS x NVAR
-    if(!is.matrix(m.beta)) m.beta <- as.matrix(m.beta)
-    colnames(m.beta) <- names(Estim.Opt$ls.rand.par)
-    return(m.beta)
+    if(!is.matrix(mBeta)) mBeta <- as.matrix(mBeta)
+    colnames(mBeta) <- names(EstimOpt$lsP_rand)
+    return(mBeta)
 }

@@ -1,7 +1,7 @@
 ################################################################################
 ##  Name:         r.script.methods.parallel.R
 ##  Created:      2018.08.02
-##  Last edited:  2018.08.02
+##  Last edited:  2018.09.10
 ##  Author:       Erlend Dancke Sandorf
 ##  Contributors: N/A
 ################################################################################
@@ -9,96 +9,96 @@
 ################################################################################
 ##  Function for setting up the workers
 ################################################################################
-fn.set.up.worker <- function(ls.cluster, Estim.Opt){
+fnSetUpWorker <- function(lsCluster, EstimOpt){
     ##  Load packages to worker
-    clusterCall(ls.cluster, function(str.p){
-        lapply(str.p, require, character.only = TRUE)
+    clusterCall(lsCluster, function(strPack){
+        lapply(strPack, require, character.only = TRUE)
         NULL ## Avoid sending unneccesary info to master
-    }, Estim.Opt$str.packages)
+    }, EstimOpt$strPackages)
     
     ##  Set seed on worker
-    clusterSetRNGStream(cl = ls.cluster, iseed = Estim.Opt$i.seed)
+    clusterSetRNGStream(cl = lsCluster, iseed = EstimOpt$iSeed)
     
-    ##  Set up functions on the worker and load Estim.Opt
-    clusterExport(ls.cluster, c("fn.make.beta.names",
-                                "fn.make.beta",
-                                "fn.log.lik",
-                                "ls.str.par.names",
-                                "Estim.Opt"))
+    ##  Set up functions on the worker and load EstimOpt
+    clusterExport(lsCluster, c("fnMakeBetaNames",
+                               "fnMakeBeta",
+                               "fnLogLik",
+                               "lsParNames",
+                               "EstimOpt"))
     
     ##  Export the row index to the worker
-    clusterApply(ls.cluster, ls.data.index, function(ls.tmp){
-        ls.index <<- ls.tmp
-        NULL
-    })
-    rm(ls.data.index, envir = .GlobalEnv)
+    # clusterApply(lsCluster, ls.data.index, function(ls_tmp){
+    #     ls.index <<- ls_tmp
+    #     NULL
+    # })
+    # rm(ls.data.index, envir = .GlobalEnv)
     
     ##  Export the attribute data to the worker
-    clusterApply(ls.cluster, ls.data.X, function(ls.tmp){
-        ls.X <<- ls.tmp
+    clusterApply(lsCluster, lsDataX, function(ls_tmp){
+        lsX <<- ls_tmp
         NULL
     })
-    rm(ls.data.X, envir = .GlobalEnv)
+    rm(lsDataX, envir = .GlobalEnv)
     
     ##  Export the choice data to the worker
-    clusterApply(ls.cluster, ls.data.Y, function(ls.tmp){
-        ls.Y <<- ls.tmp
+    clusterApply(lsCluster, lsDataY, function(ls_tmp){
+        lsY <<- ls_tmp
         NULL
     })
-    rm(ls.data.Y, envir = .GlobalEnv)
+    rm(lsDataY, envir = .GlobalEnv)
     
     ##  Export the interactions data
-    if(length(Estim.Opt$ls.het.par) > 0L){
-        clusterApply(ls.cluster, ls.data.H, function(m.tmp){
-            m.H <<- m.tmp
+    if(length(EstimOpt$lsP_het) > 0L){
+        clusterApply(lsCluster, lsDataH, function(m_tmp){
+            mH <<- m_tmp
             NULL
         })
-        rm(ls.data.H, envir = .GlobalEnv)
+        rm(lsDataH, envir = .GlobalEnv)
     }
     
     ##  Export the relative scale data
-    if(Estim.Opt$b.relative.scale){
-        clusterApply(ls.cluster, ls.data.R, function(m.tmp){
-            m.R <<- m.tmp
+    if(EstimOpt$bRelativeScale){
+        clusterApply(lsCluster, lsDataR, function(m_tmp){
+            mR <<- m_tmp
             NULL
         })
-        rm(ls.data.R, envir = .GlobalEnv)
+        rm(lsDataR, envir = .GlobalEnv)
     }
     
     ##  Export the class probability data
-    if(Estim.Opt$b.latent.class){
-        clusterApply(ls.cluster, ls.data.C, function(ls.tmp){
-            ls.C <<- ls.tmp
+    if(EstimOpt$bLatentClass){
+        clusterApply(lsCluster, lsDataC, function(ls_tmp){
+            lsC <<- ls_tmp
             NULL
         })
-        rm(ls.data.C, envir = .GlobalEnv)
+        rm(lsDataC, envir = .GlobalEnv)
         
         ##  Export the list/matrix of constraints
-        if(Estim.Opt$b.equality.constrained){
-            clusterExport(ls.cluster, "ls.delta")
-            clusterExport(ls.cluster, "m.delta.expanded")
-            rm(ls.delta, ls.delta.expanded, envir = .GlobalEnv)
+        if(EstimOpt$bEqualityConstrained){
+            clusterExport(lsCluster, "lsDdelta")
+            clusterExport(lsCluster, "mDeltaExpanded")
+            rm(lsDelta, mDeltExpanded, envir = .GlobalEnv)
         }
     }
     
     ##  Export the random draws
-    if(Estim.Opt$b.make.draws){
-        clusterApply(ls.cluster, ls.draws, function(m.tmp){
-            m.draws <<- m.tmp
+    if(EstimOpt$bMakeDraws){
+        clusterApply(lsCluster, lsDraws, function(m_tmp){
+            mDraws <<- m_tmp
             NULL
         })
-        rm(ls.draws, envir = .GlobalEnv)
+        rm(lsDraws, envir = .GlobalEnv)
         
-        clusterApply(ls.cluster, ls.draws.index, function(ls.tmp){
-            ls.draws.index <<- ls.tmp
-            NULL
-        })
-        rm(ls.draws.index, envir = .GlobalEnv)
+        # clusterApply(lsCluster, ls.draws.index, function(ls_tmp){
+        #     ls.draws.index <<- ls_tmp
+        #     NULL
+        # })
+        # rm(ls.draws.index, envir = .GlobalEnv)
     }
     
     ##  Export a "core counter"
-    clusterApply(ls.cluster, as.list(1L:Estim.Opt$i.cores), function(i.x){
-        i.am.core.number <<- i.x
+    clusterApply(lsCluster, as.list(1L:EstimOpt$iCores), function(iX){
+        iAmCoreNumber <<- iX
         NULL
     })
     
@@ -107,60 +107,60 @@ fn.set.up.worker <- function(ls.cluster, Estim.Opt){
 ################################################################################
 ##  Function for checking the worker
 ################################################################################
-fn.check.worker <- function(ls.cluster, Estim.Opt){
+fnCheckWorker <- function(lsCluster, EstimOpt){
     ##  Get the objects in .GlobalEnv on the worker
-    ls.GlobalEnv.worker <- parLapply(ls.cluster, seq_along(ls.cluster),
-                                     function(cl.x){
-                                         ls.tmp <- ls(.GlobalEnv)
-                                         return(ls.tmp)
-                                     })
+    lsGlobalEnv_worker <- parLapply(lsCluster, seq_along(lsCluster),
+                                    function(clX){
+                                        ls_tmp <- ls(.GlobalEnv)
+                                        return(ls_tmp)
+                                    })
     
     ##  Get the size of the objects in .GlobalEnv on worker
-    ls.ObjectSize.worker <- parLapply(ls.cluster, seq_along(ls.cluster),
-                                      function(cl.x){
-                                          ls.tmp <- lapply(ls(.GlobalEnv), function(str.x){
-                                             i.tmp <- object_size(get(str.x, envir = .GlobalEnv))
-                                             return(i.tmp)
-                                          })
-                                      })
+    lsObjectSize_worker <- parLapply(lsCluster, seq_along(lsCluster),
+                                     function(clX){
+                                         ls_tmp <- lapply(ls(.GlobalEnv), function(strX){
+                                             dSize <- object_size(get(strX, envir = .GlobalEnv))
+                                             return(dSize)
+                                         })
+                                     })
     
     ##  Combine the lists to a matrix
-    ls.objects.worker <- mapply(cbind, ls.GlobalEnv.worker, ls.ObjectSize.worker,
-                                SIMPLIFY = FALSE)
+    lsObjects_worker <- mapply(cbind, lsGlobalEnv_worker, lsObjectSize_worker,
+                               SIMPLIFY = FALSE)
     
-    ls.objects.worker <- lapply(ls.objects.worker, function(m.x){
-        colnames(m.x) <- c("object", "size (bytes)")
-        return(m.x)
+    lsObjects_worker <- lapply(lsObjects_worker, function(mX){
+        colnames(mX) <- c("Object", "Size (bytes)")
+        return(mX)
     })
     
     ##  Get a list of the packages loaded on the worker
-    ls.packages.worker <- parLapply(ls.cluster, seq_along(ls.cluster),
-                                    function(cl.x){
-                                        return(search())
-                                    })
+    lsPackages_worker <- parLapply(lsCluster, seq_along(lsCluster),
+                                   function(clX){
+                                       return(search())
+                                   })
     
     ##  Set up a list with length equal to the number of workers
-    ls.workers <- vector(mode = "list", length = Estim.Opt$i.cores)
-    names(ls.workers) <- paste0("worker.", seq_len(Estim.Opt$i.cores))
+    lsWorkers <- vector(mode = "list", length = EstimOpt$iCores)
+    names(lsWorkers) <- paste0("worker.", seq_len(EstimOpt$iCores))
     
-    for(i.i in seq_len(Estim.Opt$i.cores)){
-        ls.workers[[i.i]] <- list(ls.objects.worker[[i.i]],
-                                  ls.packages.worker[[i.i]])
+    for(i in seq_len(EstimOpt$iCores)){
+        lsWorkers[[i]] <- list(lsObjects_worker[[i]],
+                               lsPackages_worker[[i]])
     }
-    ls.workers <- lapply(ls.workers, function(ls.x){
-        names(ls.x) <- c("objects", "packages")
-        return(ls.x)
+    lsWorkers <- lapply(lsWorkers, function(lsX){
+        names(lsX) <- c("Objects", "Packages")
+        return(lsX)
     })
     
     ##  Print information about the worker
     cat("###################################################################\n")
     cat("Printing information on workers.")
-    print(ls.workers)
+    print(lsWorkers)
     cat("###################################################################\n")
     
     
     ############################################################################
-    rm(ls.GlobalEnv.worker, ls.ObjectSize.worker, ls.objects.worker,
-       ls.packages.worker, ls.workers)
+    rm(lsGlobalEnv_worker, lsObjectSize_worker, lsObjects_worker,
+       lsPackages_worker, lsWorkers)
     ############################################################################
 }

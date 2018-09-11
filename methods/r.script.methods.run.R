@@ -1,7 +1,7 @@
 ################################################################################
 ##  Name:         r.script.methods.run.R
 ##  Created:      2018.08.02
-##  Last edited:  2018.08.02
+##  Last edited:  2018.09.10
 ##  Author:       Erlend Dancke Sandorf
 ##  Contributors: N/A
 ################################################################################
@@ -9,68 +9,80 @@
 ################################################################################
 ##  Function for searching for starting values
 ################################################################################
-fn.search.starting.values <- function(v.param, v.str.par.names, ls.cluster,
-                                      Estim.Opt){
+fnSearchStartingValues <- function(vP, strParNames, lsCluster,
+                                   EstimOpt){
+    ##  Set some overall parameters
+    iN <- EstimOpt$iN
+    iJ <- EstimOpt$iJ
+    iT <- EstimOpt$iT
+    iM_search <- EstimOpt$iM_search
+    iM_run <- EstimOpt$iM_run
+    
     ##  Check that we have specified sufficient number of models and correct
-    if(Estim.Opt$i.nr.of.models > Estim.Opt$i.nr.of.starting.models){
-        Estim.Opt$i.nr.of.starting.models <<- Estim.Opt$i.nr.of.models * 2
+    if(iM_run > iM_search){
+        iM_search <<- iM_run * 2
     }
-
-    ##  Set up a matrix of v.param repeated equal to nr of starting models
-    m.param <- matrix(rep(v.param, Estim.Opt$i.nr.of.starting.models),
-                      ncol = length(v.param), byrow = TRUE) + 0.001
+    
+    ##  Set up a matrix of vP repeated equal to nr of starting models
+    mP <- matrix(rep(vP, iM_search), ncol = length(vP), byrow = T) + 0.001
     
     ##  Set up a matrix of random numbers to use in calculation
-    m.runif <- matrix(runif(Estim.Opt$i.nr.of.starting.models * length(v.param)),
-                      ncol = length(v.param)) - 0.5
+    mRunif <- matrix(runif(iM_search * length(vP)), ncol = length(vP)) - 0.5
     
     ##  Create the matrix of starting values
-    m.param <- m.param + (m.param * m.runif * Estim.Opt$d.multiplier * 2)
+    mP <- mP + (mP * mRunif * EstimOpt$dMulti * 2)
     
     ##  Turn into a list for faster processing
-    ls.param <- as.list(data.frame(t(m.param)))
-    ls.param <- lapply(ls.param, function(v.x){
-        names(v.x) <- v.str.par.names
-        return(v.x)
+    lsP <- as.list(data.frame(t(mP)))
+    lsP <- lapply(lsP, function(vP_tmp){
+        names(vP_tmp) <- strParNames
+        return(vP_tmp)
     })
     
     ##  Check whether we are estimating models in parallel
-    if(Estim.Opt$b.parallel){
-        ls.ll.values <- lapply(ls.param, function(v.x){
-            ls.ll <- parLapply(ls.cluster, seq_along(ls.cluster),
-                               function(i.am.not.using.this){
-                                   fn.log.lik(v.x)
-                               })
-            return(sum(Reduce(c, ls.ll)))
+    if(EstimOpt$bParallel){
+        lsLL_values <- lapply(lsP, function(vP_tmp){
+            lsLL <- parLapply(lsCluster, seq_along(lsCluster),
+                              function(iClusterCounter){
+                                  fn.log.lik(vP_tmp)
+                              })
+            return(sum(Reduce(c, lsLL)))
         })
     } else{
-        ls.ll.values <- lapply(ls.param, function(v.x){
-            sum(fn.log.lik(v.x))
+        lsLL_values <- lapply(lsP, function(vP_tmp){
+            sum(fnLogLik(vP_tmp))
         })
     }
     
     ##  Create a matrix and sort based on LL values
-    m.param <- cbind(m.param, Reduce(rbind, ls.ll.values))
-    m.param <- m.param[order(m.param[, ncol(m.param)], decreasing = TRUE), ]
-    return(m.param[1L:Estim.Opt$i.nr.of.models, 1L:length(v.param), drop = FALSE])
+    mP <- cbind(mP, Reduce(rbind, lsLL_values))
+    mP <- mP[order(mP[, ncol(mP)], decreasing = T), ]
+    return(mP[1L:iM_run, 1L:length(vP), drop = F])
 }
 
 ################################################################################
 ##  Function for running the model
 ################################################################################
-fn.run.model <- function(Estim.Opt){
+fnRunModel <- function(EstimOpt){
     ##  Check that file writing is turned oof
     if(sink.number() > 0L) sink()
     
+    ##  Set some overall parameters
+    iN <- EstimOpt$iN
+    iJ <- EstimOpt$iJ
+    iT <- EstimOpt$iT
+    iM_search <- EstimOpt$iM_search
+    iM_run <- EstimOpt$iM_run
+    
     ##  Set seed
-    set.seed(Estim.Opt$i.seed)
+    set.seed(EstimOpt$iSeed)
     
     ##  If we are not using parallel computing, set number of cores to 1
-    if(!Estim.Opt$b.parallel) Estim.Opt$i.cores <- 1L
+    if(!EstimOpt$bParallel) EstimOpt$iCores <- 1L
     
     ##  Check number of cores
-    if(Estim.Opt$b.parallel && Estim.Opt$i.cores >= detectCores()){
-        Estim.Opt$i.cores <- max(1L, detectCores() - 1L)
+    if(EstimOpt$bParallel && EstimOpt$iCores >= detectCores()){
+        EstimOpt$iCores <- max(1L, detectCores() - 1L)
         cat("###################################################################\n")
         cat("The number of cores has been adjusted to detectCores() -1L \n")
         cat("###################################################################\n")
@@ -83,239 +95,246 @@ fn.run.model <- function(Estim.Opt){
     proc.time.start <- proc.time()
     cat("###################################################################\n")
     cat("Setting up the data and generating random draws.\n")
-    fn.set.up.data(Estim.Opt)
-    time.tmp <- fn.time(proc.time() - proc.time.start)
+    fnSetUpData(EstimOpt)
+    time_tmp <- fnTime(proc.time() - proc.time.start)
     cat("Setting up the data took",
-        time.tmp[[1]], "days",
-        time.tmp[[2]],"hours",
-        time.tmp[[3]], "minutes and",
-        time.tmp[[4]], "seconds.\n")
+        time_tmp[[1]], "days",
+        time_tmp[[2]],"hours",
+        time_tmp[[3]], "minutes and",
+        time_tmp[[4]], "seconds.\n")
     cat("###################################################################\n")
     cat("\n")
-    rm(time.tmp)
+    ############################################################################
+    rm(time_tmp)
+    ############################################################################
     
     ##  Generate parameter names
-    ls.str.par.names <<- fn.make.beta.names(Estim.Opt)
-    v.str.par.names <- Reduce(c, ls.str.par.names)
+    lsParNames <<- fnMakeBetaNames(EstimOpt)
+    strParNames <- Reduce(c, lsParNames)
     
     ############################################################################
     ##  Check whether we are estimating on a single or multiple cores
     ############################################################################
-    if(Estim.Opt$b.parallel){
+    if(EstimOpt$bParallel){
         ##  Set up the cluster
-        ls.cluster <- makeCluster(Estim.Opt$i.cores, type = "PSOCK",
-                                  manual = FALSE,
-                                  outfile = Estim.Opt$str.output.debug)
+        lsCluster <- makeCluster(EstimOpt$iCores, type = "PSOCK",
+                                 manual = F,
+                                 outfile = EstimOpt$strDebugFile)
         
         ##  Make sure that the cluster is closed when the function exits
-        on.exit(stopCluster(ls.cluster))
+        on.exit(stopCluster(lsCluster))
         
         ##  Set up the workers -- cleaning is done within this function
-        fn.set.up.worker(ls.cluster, Estim.Opt)
+        fnSetUpWorker(lsCluster, EstimOpt)
         
         ##  Check the worker -- functionality to be added
-        if(Estim.Opt$b.print.worker.info){
-            fn.check.worker(ls.cluster, Estim.Opt)
+        if(EstimOpt$bPrintWorkerInfo){
+            fnCheckWorker(lsCluster, EstimOpt)
         }
         
-        ##  Garbage collection
-        invisible(gc(verbose = FALSE))
+        ########################################################################
+        invisible(gc(verbose = F))
+        ########################################################################
     } else {
         ##  Save the data witih the correct names globally
-        ls.index <<- ls.data.index[[1L]]
-        rm(ls.data.index, envir = .GlobalEnv)
+        # ls.index <<- ls.data.index[[1L]]
+        # rm(ls.data.index, envir = .GlobalEnv)
         
-        ls.X <<- ls.data.X[[1L]]
-        rm(ls.data.X, envir = .GlobalEnv)
+        lsX <<- lsDataX[[1L]]
+        rm(lsDataX, envir = .GlobalEnv)
         
-        ls.Y <<- ls.data.Y[[1L]]
-        rm(ls.data.Y, envir = .GlobalEnv)
+        lsY <<- lsDataY[[1L]]
+        rm(lsDataY, envir = .GlobalEnv)
         
-        if(length(Estim.Opt$ls.het.par) > 0L){
-            m.H <<- ls.data.H[[1L]]
-            rm(ls.data.H, envir = .GlobalEnv)
+        if(length(EstimOpt$lsP_het) > 0L){
+            mH <<- lsDataH[[1L]]
+            rm(lsDataH, envir = .GlobalEnv)
         } 
         
-        if(Estim.Opt$b.relative.scale){
-            m.R <<- ls.data.R[[1L]]
-            rm(ls.data.R, envir = .GlobalEnv)
+        if(EstimOpt$bRelativeScale){
+            mR <<- lsDataR[[1L]]
+            rm(lsDataR, envir = .GlobalEnv)
         } 
         
-        if(Estim.Opt$b.latent.class){
-            ls.C <<- ls.data.C[[1L]]
-            rm(ls.data.C, envir = .GlobalEnv)
+        if(EstimOpt$bLatentClass){
+            lsC <<- lsDataC[[1L]]
+            rm(lsDataC, envir = .GlobalEnv)
         } 
         
-        if(Estim.Opt$b.make.draws){
-            m.draws <<- ls.draws[[1L]]
-            rm(ls.draws, envir = .GlobalEnv)
-            ls.draws.index <<- ls.draws.index[[1L]]
+        if(EstimOpt$bMakeDraws){
+            mDraws <<- lsDraws[[1L]]
+            rm(lsDraws, envir = .GlobalEnv)
+            # ls.draws.index <<- ls.draws.index[[1L]]
         }
         
-        ##  Set empty ls.cluster for starting value search
-        ls.cluster <- NULL
+        ##  Set empty lsCluster for starting value search
+        lsCluster <- NULL
         
         ##  Garbage collection
-        invisible(gc(verbose = FALSE))
+        invisible(gc(verbose = F))
     }
     
     ############################################################################
     ##  Check whether we are searching for starting values
     ############################################################################
-    if(Estim.Opt$b.search.starting.values && Estim.Opt$i.iterlim > 0L){
+    if(EstimOpt$bSearchStartingValues && EstimOpt$iIterlim > 0L){
         proc.time.start <- proc.time()
         cat("###################################################################\n")
-        cat("Searching", Estim.Opt$i.nr.of.starting.models,
+        cat("Searching", iM_search,
             "models for starting values ... \n")
-        m.param <- fn.search.starting.values(v.param, v.str.par.names, ls.cluster,
-                                             Estim.Opt)
-        time.tmp <- fn.time(proc.time() - proc.time.start)
+        mP <- fnSearchStartingValues(vP, strParNames, lsCluster, EstimOpt)
+        time_tmp <- fnTime(proc.time() - proc.time.start)
         cat("Starting value search took",
-            time.tmp[[1]], "days",
-            time.tmp[[2]],"hours",
-            time.tmp[[3]], "minutes and",
-            time.tmp[[4]], "seconds.\n")
-        cat("Now estimating", Estim.Opt$i.nr.of.models, "model(s) to completion!\n")
+            time_tmp[[1]], "days",
+            time_tmp[[2]],"hours",
+            time_tmp[[3]], "minutes and",
+            time_tmp[[4]], "seconds.\n")
+        cat("Now estimating", iM_run, "model(s) to completion!\n")
         cat("###################################################################\n")
         cat("\n")
-        rm(time.tmp)
+        ########################################################################
+        rm(time_tmp)
+        ########################################################################
     }
     
     ############################################################################
     ##  Write the wrapper function for the log-likelihood
     ############################################################################
-    fn.log.lik.wrapper <- function(v.param){
+    fnLogLikWrapper <- function(vP){
         ##  Check whether we are using serial or parallel processing
-        if(Estim.Opt$b.parallel){
-            ls.log.lik <- parLapply(ls.cluster, seq_along(ls.cluster),
-                                    function(i.am.not.using.this){
-                                        fn.log.lik(v.param)
-                                    })
-            v.log.lik <- Reduce(c, ls.log.lik)
+        if(EstimOpt$bParallel){
+            lsLogLik <- parLapply(lsCluster, seq_along(lsCluster),
+                                  function(iClusterCounter){
+                                      fnLogLik(vP)
+                                  })
+            vLogLik <- Reduce(c, lsLogLik)
         } else {
-            v.log.lik <- fn.log.lik(v.param)
+            vLogLik <- fnLogLik(vP)
         }
         
         ##  Print progress bar for hessian matrix calculation
-        if(exists("ls.model.tmp", envir = environment())){
-            i.count <<- i.count + 1L
-            i.K <- length(v.param)
-            i.call.numDeriv <- 4L * i.K^2L + 4L * i.K + 3L
-            v.percentile <- floor(seq(0L, i.call.numDeriv, by = (i.call.numDeriv / 10)))
-            if(i.count == 1L){cat("Hessian calculation: 0% ...")}
-            if(i.count == v.percentile[2L]){cat("10% ...")}
-            if(i.count == v.percentile[3L]){cat("20% ...")}
-            if(i.count == v.percentile[4L]){cat("30% ...")}
-            if(i.count == v.percentile[5L]){cat("40% ...")}
-            if(i.count == v.percentile[6L]){cat("50% ...")}
-            if(i.count == v.percentile[7L]){cat("60% ...")}
-            if(i.count == v.percentile[8L]){cat("70% ...")}
-            if(i.count == v.percentile[9L]){cat("80% ...")}
-            if(i.count == v.percentile[10L]){cat("90% ...")}
-            if(i.count == v.percentile[11L]){cat("100% ...")}
+        if(exists("lsModel_tmp", envir = environment())){
+            iCount <<- iCount + 1L
+            iK <- length(vP)
+            iCallnumDeriv <- 4L * iK^2L + 4L * iK + 3L
+            vPercentile <- floor(seq(0L, iCallnumDeriv, by = (iCallnumDeriv / 10)))
+            if(iCount == 1L){cat("Hessian calculation: 0% ...")}
+            if(iCount == vPercentile[2L]){cat("10% ...")}
+            if(iCount == vPercentile[3L]){cat("20% ...")}
+            if(iCount == vPercentile[4L]){cat("30% ...")}
+            if(iCount == vPercentile[5L]){cat("40% ...")}
+            if(iCount == vPercentile[6L]){cat("50% ...")}
+            if(iCount == vPercentile[7L]){cat("60% ...")}
+            if(iCount == vPercentile[8L]){cat("70% ...")}
+            if(iCount == vPercentile[9L]){cat("80% ...")}
+            if(iCount == vPercentile[10L]){cat("90% ...")}
+            if(iCount == vPercentile[11L]){cat("100% ...")}
         }
-        return(v.log.lik)
+        return(vLogLik)
     }
     
     ############################################################################
     ##  Loop over the number of models to run to completion
     ############################################################################
-    i.count.failed <<- 0L
-    if(!Estim.Opt$b.search.starting.values) Estim.Opt$i.nr.of.models <- 1L
-    for(i.n in seq_len(Estim.Opt$i.nr.of.models)){
+    iCount_failed <<- 0L
+    if(!EstimOpt$bSearchStartingValues) iM_run <- 1L
+    for(m in seq_len(iM_run)){
         proc.time.start <- proc.time()
         
         cat("\n")
         cat("###################################################################\n")
-        cat("The model is estimated using ", Estim.Opt$i.cores,  "core(s).\n")
-        cat("Estimating model ", i.n, " out of ", Estim.Opt$i.nr.of.models,
-            ". (", i.count.failed, " model(s) have failed).\n", sep = "")
+        cat("The model is estimated using ", EstimOpt$iCores,  "core(s).\n")
+        cat("Estimating model ", m, " out of ", iM_run,
+            ". (", iCount_failed, " model(s) have failed).\n", sep = "")
         cat("###################################################################\n")
         cat("\n")
         
         ##  Get the starting values and name them for reference
-        if(Estim.Opt$b.search.starting.values && Estim.Opt$i.iterlim > 0){
-            v.param <<- m.param[i.n, ]
-            names(v.param) <<- v.str.par.names
+        if(EstimOpt$bSearchStartingValues && EstimOpt$iIterlim > 0){
+            vP <<- mP[m, ]
+            names(vP) <<- strParNames
         } else {
-            names(v.param) <<- v.str.par.names
+            names(vP) <<- strParNames
         }
         
         ########################################################################
         ##  Run the model
         ########################################################################
-        ls.model.tmp <- maxLik(fn.log.lik.wrapper,
-                               start = v.param,
-                               method = Estim.Opt$str.method,
-                               print.level = Estim.Opt$i.print.level,
-                               tol = Estim.Opt$d.tol,
-                               reltol = Estim.Opt$d.reltol,
-                               gradtol = Estim.Opt$d.gradtol,
-                               steptol = Estim.Opt$d.steptol,
-                               iterlim = Estim.Opt$i.iterlim,
-                               finalHessian = Estim.Opt$b.final.hessian)
+        lsModel_tmp <- maxLik(fnLogLikWrapper,
+                              start = vP,
+                              method = EstimOpt$strMethod,
+                              print.level = EstimOpt$iPrintLevel,
+                              tol = EstimOpt$dTol,
+                              reltol = EstimOpt$dReltol,
+                              gradtol = EstimOpt$dGradtol,
+                              steptol = EstimOpt$dSteptol,
+                              iterlim = EstimOpt$iIterlim,
+                              finalHessian = EstimOpt$bFinalHessian)
         
         ########################################################################
         ##  Check for convergence
         ########################################################################
-        if(ls.model.tmp$code == 0L || ls.model.tmp$code == 2L){
+        if(lsModel_tmp$code == 0L || lsModel_tmp$code == 2L){
             cat("###################################################################\n")
             cat("Calculating the final Hessian -- get some coffee!\n\n")
             ##  Set global counter for the "progress bar"
-            i.count <<- 0L
+            iCount <<- 0L
             
             ##  Sum of the wrapper functoin
-            fn.log.lik.wrapper.sum <- function(v.param.est){
-                sum(fn.log.lik.wrapper(v.param.est))
+            fnLogLikWrapperSum <- function(vP_est){
+                sum(fnLogLikWrapper(vP_est))
             }
             
             ##  Calculate the Hessian matrix using numDeriv()
-            if(!Estim.Opt$b.final.hessian){
-                ls.model.tmp$hessian <- numDeriv::hessian(func = fn.log.lik.wrapper.sum,
-                                                          x = ls.model.tmp$estimate)
+            if(!EstimOpt$bFinalHessian){
+                lsModel_tmp$hessian <- numDeriv::hessian(func = fnLogLikWrapperSum,
+                                                         x = lsModel_tmp$estimate)
             }
-
+            
             cat("\n")
             ##  Approximate the log.lik(0)
-            ls.model.tmp$d.ll.zero <- Estim.Opt$i.obs * log(1L/Estim.Opt$i.alts)
+            lsModel_tmp$dLL_zero <- EstimOpt$iN_obs * log(1L/iJ)
             
             ##  Remove the counter from the global environment
-            rm(i.count, envir = .GlobalEnv)
+            rm(iCount, envir = .GlobalEnv)
             
             ##  Add additional information to the model object
-            ls.model.tmp$time <- proc.time() - proc.time.start
-            ls.model.tmp$v.starting.values <- v.param
-            ls.model.tmp$i.model.number <- i.n
-            ls.model.tmp$i.count.failed <- i.count.failed
-            ls.model.tmp$i.seed <- Estim.Opt$i.seed
+            lsModel_tmp$time <- proc.time() - proc.time.start
+            lsModel_tmp$vP_start <- vP
+            lsModel_tmp$iM <- m
+            lsModel_tmp$iCount_failed <- iCount_failed
+            lsModel_tmp$iSeed <- EstimOpt$iSeed
+            lsModel_tmp$dConvergenceCriteria <- t(colSums2(lsModel_tmp$gradientObs)) %*% vcov(lsModel_tmp) %*% colSums2(lsModel_tmp$gradientObs)
             
             cat("###################################################################\n")
-            cat("Estimation of model", i.n, "complete.\n")
+            cat("Estimation of model", m, "complete.\n")
             
             ##  Save model object globally and to disk
-            assign(paste0("ls.model.", i.n), ls.model.tmp, envir = .GlobalEnv)
-            saveRDS(ls.model.tmp,
-                    file = paste("MODEL", Estim.Opt$str.output.estimates,
-                                 i.n, "rds", sep = "."))
+            assign(paste0("lsModel", m), lsModel_tmp, envir = .GlobalEnv)
+            saveRDS(lsModel_tmp,
+                    file = paste("MODEL", EstimOpt$strOutputFile,
+                                 m, "rds", sep = "."))
             
             ##  Sink the results to a .txt file for easy inspection
-            if(i.n == 1L){
-                sink(paste0(Estim.Opt$str.output.estimates, ".txt"))
+            if(m == 1L){
+                sink(paste0(EstimOpt$strOutputFile, ".txt"))
             } else {
-                sink(paste0(Estim.Opt$str.output.estimates, ".txt"),
-                     append = TRUE)
+                sink(paste0(EstimOpt$strOutputFile, ".txt"),
+                     append = T)
             }
-            print(fn.model.summary(ls.model.tmp))
+            print(fnModelSummary(lsModel_tmp))
             sink()
             
             ##  Print summary to console
-            print(fn.model.summary(ls.model.tmp))
+            print(fnModelSummary(lsModel_tmp))
         } else {
             cat("###################################################################\n")
-            cat("Estimation of model", i.n, "failed.")
-            i.count.failed <<- i.count.failed + 1L
+            cat("Estimation of model", m, "failed.")
+            iCount_failed <<- iCount_failed + 1L
         }
-        rm(ls.model.tmp)
-        invisible(gc(verbose = FALSE))
+        ########################################################################
+        rm(lsModel_tmp)
+        invisible(gc(verbose = F))
+        ########################################################################
     }
 }

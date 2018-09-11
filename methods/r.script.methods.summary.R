@@ -1,7 +1,7 @@
 ################################################################################
 ##  Name:         r.script.methods.summary.R
 ##  Created:      2018.08.02
-##  Last edited:  2018.08.02
+##  Last edited:  2018.09.10
 ##  Author:       Erlend Dancke Sandorf
 ##  Contributors: N/A
 ################################################################################
@@ -9,192 +9,199 @@
 ################################################################################
 ##  Create a function to calculate and print summary statistics
 ################################################################################
-fn.model.summary <- function(ls.X){
+fnModelSummary <- function(lsM){
     ##  Set this option to avoid sceintific notation in printing
-    options(scipen = 999)
+    # options(scipen = 999)
+    
+    ##  Set some overall parameters
+    iN <- EstimOpt$iN
+    iN_obs <- EstimOpt$iN_obs
+    iJ <- EstimOpt$iJ
+    iT <- EstimOpt$iT
+    iM_search <- EstimOpt$iM_search
+    iM_run <- EstimOpt$iM_run
+    dLL_zero <- lsM$dLL_zero
+    dLL <- lsM$maximum
+    iK <- length(lsM$estimate)
     
     ############################################################################
     ##  Print general convergence information
     ############################################################################
     cat("###################################################################\n")
-    cat("Model name: ", Estim.Opt$str.model.name, "\n")
-    cat("Model message: ", ls.X$message, "\n")
-    cat("Estimating model ", ls.X$i.model.number, "out of ",
-        Estim.Opt$i.nr.of.models, ". (", ls.X$i.count.failed,
+    cat("Model name: ", EstimOpt$strModelName, "\n")
+    cat("Model message: ", lsM$message, "\n")
+    cat("Convergence criteria: ", lsM$dConvergenceCriteria, "\n")
+    cat("Estimating model ", lsM$m, "out of ",
+        EstimOpt$iM_run, ". (", lsM$iCount_failed,
         "model(s) have failed).\n\n")
     
     cat("###################################################################\n")
     cat("Starting values (NOTE: Padded with zeros)\n")
-    i.tmp <- length(ls.X$v.starting.values)
-    v.tmp <- c(ls.X$v.starting.values, rep(0, ((5L * ceiling(i.tmp / 5L)) - i.tmp)))
-    print(matrix(v.tmp, ncol = 5L, byrow = TRUE))
+    v_tmp <- c(lsM$vP_start, rep(0, ((5L * ceiling(iK / 5L)) - iK)))
+    print(matrix(v_tmp, ncol = 5L, byrow = T))
     cat("\n")
     
     cat("###################################################################\n")
     cat("Final values (NOTE: Padded with zeros)\n")
-    i.tmp <- length(ls.X$estimate)
-    v.tmp <- c(ls.X$estimate, rep(0, ((5L * ceiling(i.tmp / 5L)) - i.tmp)))
-    print(matrix(v.tmp, ncol = 5L, byrow = TRUE))
+    v_tmp <- c(lsM$estimate, rep(0, ((5L * ceiling(iK / 5L)) - iK)))
+    print(matrix(v_tmp, ncol = 5L, byrow = T))
     cat("\n")
     
     cat("###################################################################\n")
     cat("Gradient at convergence (NOTE: Padded with zeros)\n")
-    i.tmp <- length(ls.X$gradient)
-    v.tmp <- c(ls.X$gradient, rep(0, ((5L * ceiling(i.tmp / 5L)) - i.tmp)))
-    print(matrix(v.tmp, ncol = 5L, byrow = TRUE))
+    v_tmp <- c(lsM$gradient, rep(0, ((5L * ceiling(iK / 5L)) - iK)))
+    print(matrix(v_tmp, ncol = 5L, byrow = T))
     cat("\n")
     
     ############################################################################
     ##  Create a function for printing some summary statistics
     ############################################################################
-    fn.summary.stats <- function(d.ll.final, d.ll.zero, i.k){
-        i.tmp <- Estim.Opt$i.obs
-        v.tmp <- c(d.ll.final,
-                   d.ll.zero,
-                   i.tmp,
-                   i.k,
-                   (1L - ((d.ll.final - i.k) / (d.ll.zero))), 
-                   ((-2L * d.ll.final) + (2L * i.k) ), 
-                   ((-2L * d.ll.final) + (3L * i.k)), 
-                   ((-2L * d.ll.final) + (i.k * (log(i.tmp) + 1L))), 
-                   ((-2L * d.ll.final) + (i.k * (log((i.tmp + 2L) / 24L) + 1L ))), 
-                   ((-2L * d.ll.final) + (2L * i.k)  +
-                        (((2L * (i.k + 1L)) * (i.k + 2L))/(i.tmp - i.k - 2L))),
-                   ((-2L * d.ll.final) + (i.k * log(i.tmp))), 
-                   ((-2L * d.ll.final) + (i.k * (log((i.tmp + 2L) / 24L)))), 
-                   ((-2L * d.ll.final) + (i.k * (log(i.tmp) - log(2L * pi)))), 
-                   ((-2L * d.ll.final) + (2L * (i.k * (log(log(i.tmp)))))))
-        m.tmp <- matrix(v.tmp, nrow = 14L, ncol = 1L,
-                        dimnames = list(c("LL", "LL(0)", "N", "K", "Adj. Rho^2",
-                                          "AIC", "AIC3", "CAIC", "CAIC*",
-                                          "HT-AIC/AICc", "BIC", "BIC*", "DBIC",
-                                          "HQIC"), c("Value")))
+    fnSummaryStats <- function(dLL, dLL_zero, iK, iN_obs){
+        vStats <- c(dLL,
+                    dLL_zero,
+                    iN_obs,
+                    iK,
+                    (1L - ((dLL - iK) / (dLL_zero))), 
+                    ((-2L * dLL) + (2L * iK) ), 
+                    ((-2L * dLL) + (3L * iK)), 
+                    ((-2L * dLL) + (iK * (log(iN_obs) + 1L))), 
+                    ((-2L * dLL) + (iK * (log((iN_obs + 2L) / 24L) + 1L ))), 
+                    ((-2L * dLL) + (2L * iK)  +
+                         (((2L * (iK + 1L)) * (iK + 2L))/(iN_obs - iK - 2L))),
+                    ((-2L * dLL) + (iK * log(iN_obs))), 
+                    ((-2L * dLL) + (iK * (log((iN_obs + 2L) / 24L)))), 
+                    ((-2L * dLL) + (iK * (log(iN_obs) - log(2L * pi)))), 
+                    ((-2L * dLL) + (2L * (iK * (log(log(iN_obs)))))))
+        mStats_tmp <- matrix(vStats, nrow = 14L, ncol = 1L,
+                             dimnames = list(c("LL", "LL(0)", "N", "K", "Adj. Rho^2",
+                                               "AIC", "AIC3", "CAIC", "CAIC*",
+                                               "HT-AIC/AICc", "BIC", "BIC*", "DBIC",
+                                               "HQIC"), c("Value")))
         
         ##  Return the matrix
-        return(m.tmp)
+        return(mStats_tmp)
     }
     
     cat("###################################################################")
     cat("\n")
     cat("Model details: \n")
-    m.stat <- fn.summary.stats(ls.X$maximum, ls.X$d.ll.zero, length(ls.X$estimate))
-    print(m.stat)
+    mStats <- fnSummaryStats(dLL, dLL_zero, iK, iN_obs)
+    print(mStats)
     cat("\n")
     
     ############################################################################
     ##  Calculate the variance covariance matrix and construct table of outputs
     ############################################################################
     ##  Check that we don't have any missing values in the Hessian matrix
-    if(!any(is.nan(ls.X$hessian))){
-        m.vcov <- MASS::ginv(-ls.X$hessian)
-        i.k <- length(ls.X$estimate)
+    if(!any(is.nan(lsM$hessian))){
+        mVCOV <- MASS::ginv(-lsM$hessian)
         
         ##  Check whether we are calculating robust standard errors
-        if(Estim.Opt$b.robust.vcov){
-            m.bread <- m.vcov * Estim.Opt$i.ind
-            m.bread[is.na(m.bread)] <- 0L
+        if(EstimOpt$bRobustVCOV){
+            mBread <- mVCOV * iN
+            mBread[is.na(mBread)] <- 0L
             
-            m.meat <- crossprod(ls.X$gradientObs) / Estim.Opt$i.ind
-            if(Estim.Opt$b.adjusted.robust.vcov){
-                m.meat <- m.meat * (Estim.Opt$i.ind / (Estim.Opt$i.ind - i.k))
+            mMeat <- crossprod(lsM$gradientObs) / iN
+            if(EstimOpt$bAdjustedRobustVCOV){
+                mMeat <- mMeat * (iN / (iN - iK))
             }
-            m.meat[is.na(m.meat)] <- 0L
+            mMeat[is.na(mMeat)] <- 0L
             
-            m.vcov <- (m.bread %*% m.meat %*% m.bread) / Estim.Opt$i.ind
+            mVCOV <- (mBread %*% mMeat %*% mBread) / iN
         }
         
         ##  Matrix of outputs
-        m.out <- matrix(NA, nrow = length(ls.X$estimate), ncol = 4L)
-        m.out[, 1L] <- ls.X$estimate
-        m.out[, 2L] <- sqrt(diag(m.vcov))
-        m.out[, 3L] <- m.out[, 1L] / m.out[, 2L]
-        m.out[, 4L] <- 2L * pt(-abs(m.out[, 3L]), df = Estim.Opt$i.obs)
-        m.out <- round(m.out, 5)
-        colnames(m.out) <- c("Est.", "Std. Err.", "T-stat", "P-value")
-        rownames(m.out) <- names(ls.X$estimate)
+        mOut <- matrix(NA, nrow = iK, ncol = 4L)
+        mOut[, 1L] <- lsM$estimate
+        mOut[, 2L] <- sqrt(diag(mVCOV))
+        mOut[, 3L] <- mOut[, 1L] / mOut[, 2L]
+        mOut[, 4L] <- 2L * pt(-abs(mOut[, 3L]), df = iN_obs)
+        mOut <- round(mOut, 5)
+        colnames(mOut) <- c("Est.", "Std. Err.", "T-stat", "P-value")
+        rownames(mOut) <- names(lsM$estimate)
         
         cat("###################################################################")
         cat("\n")
         cat("Estimated parameters: \n")
-        print(m.out)
+        print(mOut)
         cat("\n")
         
         ########################################################################
         ##  Print extra information if we have a MIXL with correlations
         ########################################################################
-        if(Estim.Opt$b.correlation == TRUE){
-            i.F <- length(Estim.Opt$str.fixed.par)
-            i.R <- length(Estim.Opt$ls.rand.par)
-            str.names <- names(Estim.Opt$ls.rand.par)
-            i.start <- (1L + i.F + i.R)
-            i.end <- (i.F + ((2L * i.R) + (i.R * (i.R - 1L) / 2L)))
+        if(EstimOpt$bCorrelation == T){
+            iK_f <- length(EstimOpt$strP_fixed)
+            iK_r <- length(EstimOpt$lsP_rand)
+            strVars <- names(EstimOpt$lsP_rand)
+            iS <- (1L + iK_f + iK_r)
+            iE <- (iK_f + ((2L * iK_r) + (iK_r * (iK_r - 1L) / 2L)))
             
             ##   Set up the lower Cholesky matrix
-            m.L <- matrix(0, i.R, i.R)
-            m.L[lower.tri(m.L, diag = TRUE)] <- ls.X$estimate[i.start:i.end]
+            mL <- matrix(0, iK_r, iK_r)
+            mL[lower.tri(mL, diag = T)] <- lsM$estimate[iS:iE]
             
             ##   Create the correlation matrix
-            m.vcov.param <- m.L %*% t(m.L)
-            m.D <- solve(diag(sqrt(diag(m.vcov.param))))
-            m.rho <- m.D %*% m.vcov.param %*% m.D
+            mVCOV.param <- mL %*% t(mL)
+            mD <- solve(diag(sqrt(diag(mVCOV.param))))
+            mRho <- mD %*% mVCOV.param %*% mD
             
             ##   Combine the lower Cholesky and upper triangular correlation matrices
-            m.tmp <- matrix(0, i.R, i.R)
-            m.tmp[upper.tri(m.rho, diag = FALSE)] <- m.rho[lower.tri(m.rho, diag = FALSE)]
-            m.chol.corr <- m.L + m.tmp
-            colnames(m.chol.corr) <- str.names
-            rownames(m.chol.corr) <- str.names
+            m_tmp <- matrix(0, iK_r, iK_r)
+            m_tmp[upper.tri(mRho, diag = F)] <- mRho[lower.tri(mRho, diag = F)]
+            mCholCorr <- mL + m_tmp
+            colnames(mCholCorr) <- strVars
+            rownames(mCholCorr) <- strVars
             
             ##   Subset the vcov to match the lower Cholesky matrix
-            m.lambda <- m.vcov[i.start:i.end, i.start:i.end]
+            mLambda <- mVCOV[iS:iE, iS:iE]
             
             ##   Calculate the SDs of the random parameters
-            m.sd <- fn.sd(m.L, m.lambda)
-            colnames(m.sd) <- c("Est.", "Std. Err.", "T-stat", "P-value")
-            rownames(m.sd) <- str.names
+            mSD <- fn.sd(mL, mLambda)
+            colnames(mSD) <- c("Est.", "Std. Err.", "T-stat", "P-value")
+            rownames(mSD) <- strVars
             
             ##   Calculate the standard errors of the correlations between the parameters
-            m.corr <- fn.corr(m.L, m.lambda)
-            colnames(m.corr) <-c("Est.", "Std. Err.", "T-stat", "P-value")
-            str.corr.names <- NULL
+            mCorr <- fn.corr(mL, mLambda)
+            colnames(mCorr) <-c("Est.", "Std. Err.", "T-stat", "P-value")
+            strNames <- NULL
             
-            for(i in 1:(length(Estim.Opt$ls.rand.par) - 1)){
-                str.corr.names <- c(str.corr.names, paste(str.names[i],
-                                          str.names[(i + 1):i.R], sep = "."))
+            for(i in 1:(length(EstimOpt$lsP_rand) - 1)){
+                strNames <- c(strNames, paste(strVars[i],
+                                              strVars[(i + 1):iK_r], sep = "."))
             }
             
-            rownames(m.corr) <- str.corr.names
+            rownames(mCorr) <- strNames
             
             cat("###################################################################")
             cat("\n")
             cat("Standard deviations of the random parameters \n")
-            print(m.sd)
+            print(mSD)
             cat("\n")
             
             cat("###################################################################")
             cat("\n")
             cat("Lower triangular Cholesky matrix and upper triangular correlation matrix \n")
-            print(m.chol.corr)
+            print(mCholCorr)
             cat("\n")
             
             cat("###################################################################")
             cat("\n")
             cat("Correlations between the random parameters \n")
-            print(m.corr)
+            print(mCorr)
             cat("\n")
         }
         
         ########################################################################
         ##  Print the matrix of restrictions if we are estimating the ECLC models
         ########################################################################
-        if(Estim.Opt$b.equality.constrained){
-            str.col.names <- paste0("class.", seq_len(ncol(m.delta.expanded)))
-            m.tmp <- m.delta.expanded
-            colnames(m.tmp) <- str.col.names
+        if(EstimOpt$bEqualityConstrained){
+            strNames <- paste0("class.", seq_len(ncol(mDeltaExpanded)))
+            m_tmp <- mDeltaExpanded
+            colnames(m_tmp) <- strNames
             cat("###################################################################")
             cat("\n")
             cat("The class restrictions: \n")
-            print(m.tmp)
+            print(m_tmp)
             cat("\n")
         }
     } else {
@@ -205,18 +212,18 @@ fn.model.summary <- function(ls.X){
     }
     
     
-    tmp = fn.time(ls.X$time)
+    tmp = fnTime(lsM$time)
     cat("###################################################################")
     cat("\n")
-    cat("Model was estimated on", ifelse(Estim.Opt$b.parallel == TRUE, Estim.Opt$i.cores, "1"), "core(s).\n")
+    cat("Model was estimated on", ifelse(EstimOpt$bParallel == T, EstimOpt$iCores, "1"), "core(s).\n")
     cat("Model completion time:", tmp[[1]], "days", tmp[[2]],"hours", tmp[[3]], "minutes and", tmp[[4]], "seconds \n")
-    if(Estim.Opt$b.make.draws){
-        cat("Estimated", length(Estim.Opt$ls.rand.par), "random variables using", Estim.Opt$i.draws, ifelse(Estim.Opt$b.scramble == TRUE, "scrambled", ""), Estim.Opt$str.draws.type, "draws.\n")
+    if(EstimOpt$bMakeDraws){
+        cat("Estimated", length(EstimOpt$lsP_rand), "random variables using", EstimOpt$iR, ifelse(EstimOpt$bScramble == T, "scrambled", ""), EstimOpt$strDrawType, "draws.\n")
     }
-    cat("The model is estimated in", ifelse(Estim.Opt$b.wtp.space == TRUE, "WTP space.\n", "preference space.\n"))
-    cat("The results are shown with", ifelse(Estim.Opt$b.adjusted.robust.vcov == TRUE & Estim.Opt$b.robust.vcov == TRUE, "adjusted", ""), ifelse(Estim.Opt$b.robust.vcov == TRUE, "robust", "normal"), "standard errors.\n")
-    cat("The model used the following seed: ", ls.X$i.seed, "\n")
-    cat(Estim.Opt$i.ind, "respondents made", Estim.Opt$i.obs, "choices.\n")
+    cat("The model is estimated in", ifelse(EstimOpt$bWTP_space == T, "WTP space.\n", "preference space.\n"))
+    cat("The results are shown with", ifelse(EstimOpt$AadjustedRobustVCOV == T & EstimOpt$bRobustVCOV == T, "adjusted", ""), ifelse(EstimOpt$bRobustVCOV == T, "robust", "normal"), "standard errors.\n")
+    cat("The model used the following seed: ", lsM$iSeed, "\n")
+    cat(iN, "respondents made", EstimOpt$iN_obs, "choices.\n")
     cat("###################################################################")
     cat("\n")
 }
@@ -224,17 +231,17 @@ fn.model.summary <- function(ls.X){
 ################################################################################
 ##  Function for calculating time spent running the model
 ################################################################################
-fn.time = function(t) {
+fnTime = function(t) {
     if(class(t) != "proc_time") stop("Input must be of class 'proc_time'")
     
-    i.t <- as.numeric(t[3])
+    iTime <- as.numeric(t[3])
     
-    i.days    <- floor( i.t / 86400)
-    i.hours   <- floor((i.t - (i.days * 86400)) / 3600)
-    i.minutes <- floor((i.t - (i.days * 86400) - (i.hours * 3600)) / 60)
-    i.seconds <- floor( i.t - (i.days * 86400) - (i.hours * 3600) - (i.minutes * 60))
+    iDays    <- floor( iTime / 86400)
+    iHours   <- floor((iTime - (iDays * 86400)) / 3600)
+    iMins <- floor((iTime - (iDays * 86400) - (iHours * 3600)) / 60)
+    iSecs <- floor( iTime - (iDays * 86400) - (iHours * 3600) - (iMins * 60))
     
-    return(list(i.days, i.hours, i.minutes, i.seconds))
+    return(list(iDays, iHours, iMins, iSecs))
 }
 
 ################################################################################
@@ -440,7 +447,7 @@ fn.corr = function(L, lambda) {
             x[n, 1] = y1
             x[n, 2] = y2
             x[n, 3] = y1 / y2
-            x[n, 4] = 2 * pt(-abs(y1 / y2), df = Estim.Opt$i.obs)
+            x[n, 4] = 2 * pt(-abs(y1 / y2), df = EstimOpt$iN_obs)
             
             j = j + 1
             n = n + 1
@@ -465,7 +472,7 @@ fn.sd = function(L, lambda){
         x[i, 1] = y1
         x[i, 2] = y2
         x[i, 3] = y1 / y2
-        x[i, 4] = 2 * pt(-abs(y1 / y2), df = Estim.Opt$i.obs)
+        x[i, 4] = 2 * pt(-abs(y1 / y2), df = EstimOpt$iN_obs)
         
         i = i + 1
         

@@ -1,103 +1,112 @@
 ################################################################################
 ##  Name:         r.script.ll.mnl.R
 ##  Created:      2018.08.02
-##  Last edited:  2018.08.02
+##  Last edited:  2018.09.10
 ##  Author:       Erlend Dancke Sandorf
 ##  Contributors: N/A
 ################################################################################
 
-fn.log.lik <- function(v.param){
+fnLogLik <- function(vP){
+    ##  Set some overall parameters
+    iN <- nrow(lsX[[1]]) / EstimOpt$iT
+    iT <- EstimOpt$iT
+    iJ <- EstimOpt$iJ
+    
     ##  Get the parameters
-    v.beta.f <- v.param[ls.str.par.names[["str.fixed"]]]
+    vP_fixed <- vP[lsParNames[["strP_fixed"]]]
     
     ############################################################################
     ##  Check if we are calculating utility in WTP space 
     ############################################################################
-    if(Estim.Opt$b.wtp.space){
-        i.cost.pos <- grep(Estim.Opt$str.cost, names(v.beta.f))
-        d.cost <- v.beta.f[i.cost.pos]
-        v.beta.f[i.cost.pos] <- 1L
-        v.beta.f <- v.beta.f * d.cost
+    if(EstimOpt$bWTP_space){
+        iC <- grep(EstimOpt$strP_cost, names(vP_fixed))
+        dP_tmp <- vP_fixed[iC]
+        vP_fixed[iC] <- 1L
+        vP_fixed <- vP_fixed * dP_tmp
     }
     
     ############################################################################
     ##  Calculate the fixed part of utility
     ############################################################################
-    ls.utility <- lapply(ls.X, function(m.x) crossprod(t(m.x), v.beta.f))
+    lsU <- lapply(lsX, function(mX) crossprod(t(mX), vP_fixed))
     
     ############################################################################
     ##  Check if we are estimating relative scale parameters
     ############################################################################
-    if(Estim.Opt$b.relative.scale){
-        v.lambda <- c(v.param[ls.str.par.names[["str.scale"]]], 1L)
+    if(EstimOpt$bRelativeScale){
+        vP_lambda <- c(vP[lsParNames[["strP_scale"]]], 1L)
         ##  IND*CT
-        v.scale <- crossprod(t(m.R), v.lambda) / 1L
-        v.scale <- as.vector(v.scale)
+        vS <- crossprod(t(mR), vP_lambda) / 1L
+        vS <- as.vector(vS)
         
         ## IND*CT 
-        ls.utility <- lapply(ls.utility, function(m.x){
-            return(m.x * v.scale)
+        lsU <- lapply(lsU, function(mX){
+            return(mX * vS)
         })
         
         ########################################################################
-        rm(v.scale)
+        rm(vS)
         ########################################################################
     }
     
     ############################################################################
     ##  Rescale utility
     ############################################################################
-    if(Estim.Opt$b.rescale.utility){
-        m.utility.max <- Reduce(pmax, ls.utility)
-        m.utility.min <- Reduce(pmin, ls.utility)
-        m.utility.mid <- (m.utility.max + m.utility.min) / 2L
-        ls.utility <- lapply(ls.utility, function(m.x){m.x - m.utility.mid})
+    if(EstimOpt$bRescaleUtility){
+        mU_max <- Reduce(pmax, lsU)
+        mU_min <- Reduce(pmin, lsU)
+        mU_mid <- (mU_max + mU_min) / 2L
+        lsU <- lapply(lsU, function(mX){mX - mU_mid})
         
         ########################################################################
-        rm(m.utility.max, m.utility.min, m.utility.mid)
+        rm(mU_max, mU_min, mU_mid)
         ########################################################################
     }
     
     ############################################################################
     ##  Calculating the probability of the chosen alternative
     ############################################################################
-    ls.exp.utility <- lapply(ls.utility, function(m.x) exp(m.x))
-    m.sum.utility <- Reduce('+', ls.exp.utility)
-    ls.prob.alt <- lapply(ls.exp.utility, function(m.x) {
-        v <- m.x / m.sum.utility
-        v[is.na(v)] <- 0; as.vector(v)
+    lsU_exp <- lapply(lsU, function(mX) exp(mX))
+    mU_sum <- Reduce("+", lsU_exp)
+    lsPr_alt <- lapply(lsU_exp, function(mX) {
+        v <- mX / mU_sum
+        v[is.na(v)] <- 0
+        return(as.vector(v))
     })
-    ls.prob.chosen <- mapply('*', ls.prob.alt, ls.Y, SIMPLIFY = FALSE)
-    m.prob.chosen <- Reduce('+', ls.prob.chosen)
-    m.prob.chosen <- matrix(m.prob.chosen, nrow = Estim.Opt$i.tasks)
+    
+    lsPr_chosen <- mapply('*', lsPr_alt, lsY, SIMPLIFY = FALSE)
+    mPr_chosen <- Reduce('+', lsPr_chosen)
+    
+    ##  CT x IND
+    mPr_chosen <- matrix(mPr_chosen, nrow = iT)
     
     ############################################################################
-    rm(ls.exp.utility, m.sum.utility, ls.prob.alt, ls.prob.chosen)
+    rm(lsU_exp, mU_sum, lsPr_alt, lsPr_chosen)
     ############################################################################
     
     ############################################################################
     ##  Check whether the data was complete
     ############################################################################
-    if(!Estim.Opt$b.complete.data){
-        if(any(is.nan(m.prob.chosen))){
-            m.tmp <- as.logical(is.na(m.prob.chosen) - is.nan(m.prob.chosen))
-            m.prob.chosen[m.tmp] <- 1L
-            rm(m.tmp)
+    if(!EstimOpt$bCompleteData){
+        if(any(is.nan(mPr_chosen))){
+            mPr_tmp <- as.logical(is.na(mPr_chosen) - is.nan(mPr_chosen))
+            mPr_chosen[mPr_tmp] <- 1L
+            rm(mPr_tmp)
         } else{
-            m.prob.chosen[is.na(m.prob.chosen)] <- 1L
+            mPr_chosen[is.na(mPr_chosen)] <- 1L
         }
     }
     
     ############################################################################
     ##  Calculate the log likelihood value
     ############################################################################
-    ##  Take the product over choice tasks - IND*DRAWS
-    v.prob.sequence <- colProds(m.prob.chosen)
+    ##  Take the product over choice tasks - IND
+    vPr_seq <- colProds(mPr_chosen)
     
-    ##  Average over draws - IND
-    v.lik <- rowMeans2(matrix(v.prob.sequence, nrow = (nrow(ls.X[[1]])/Estim.Opt$i.tasks)))
+    ##  Average over draws - IND -- for the MNL this does not matter
+    vLik <- rowMeans2(matrix(vPr_seq, nrow = iN))
     
     ##  Take the log
-    v.log.lik <- log(v.lik)
-    return(v.log.lik)
+    vLogLik <- log(vLik)
+    return(vLogLik)
 }

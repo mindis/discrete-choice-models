@@ -1,7 +1,7 @@
 ################################################################################
 ##  Name:         r.script.methods.draws.R
 ##  Created:      2018.08.02
-##  Last edited:  2018.08.02
+##  Last edited:  2018.09.10
 ##  Author:       Erlend Dancke Sandorf
 ##  Contributors: N/A
 ################################################################################
@@ -9,172 +9,167 @@
 ################################################################################
 ##  Function for generating MLHS draws
 ################################################################################
-fn.shuffle <- function(v.inv){
-    m.out <- v.inv[rank(runif(length(v.inv)))]
-    return(m.out)
+fnShuffle <- function(vInv){
+    mOut <- vInv[rank(runif(length(vInv)))]
+    return(mOut)
 }
 
-fn.generate.mlhs <- function(i.n, i.d, i.i){
-    v.tmp <- seq(0, i.n - 1) / i.n
-    m.out  <- matrix(0, i.n * i.i, i.d)
+fnGenerateMLHS <- function(n, d, i){
+    v_tmp <- seq(0, n - 1) / n
+    mOut  <- matrix(0, n * i, d)
     
-    i.j <- 1
-    i.k <- 1
+    j <- 1
+    k <- 1
     
-    while(i.j < i.i + 1) {
-        i.k <- 1
-        while(i.k < i.d + 1) {
-            m.out[(1 + i.n * (i.j - 1)):(i.n * i.j), i.k] <- fn.shuffle(v.tmp + runif(1)/i.n)
-            i.k <- i.k + 1
+    while(j < i + 1) {
+        k <- 1
+        while(k < d + 1) {
+            mOut[(1 + n * (j - 1)):(n * j), k] <- fnShuffle(v_tmp + runif(1)/n)
+            k <- k + 1
         }
-        i.j <- i.j + 1
+        j <- j + 1
     }
-    return(m.out)
+    return(mOut)
 }
 
 ################################################################################
 ##  Function for generating scrambled Halton sequences
 ################################################################################
-fn.start <- function(i.d, i.max.digit){
-    m.count <- matrix(0, i.d, i.max.digit)
-    m.count[, 1] <- rep(1, i.d)
-    v.digit <- rep(1, i.d)
+fnStart <- function(d, dMaxDigit){
+    mCount <- matrix(0, d, dMaxDigit)
+    mCount[, 1] <- rep(1, d)
+    vDigit <- rep(1, d)
     
-    return(list(m.count, v.digit))
+    return(list(mCount, vDigit))
 }
 
 ##  Function for expanding the sequence of integers (Equation 1 in Bhat(2003))
-fn.digitize <- function(i.d, v.primes, m.count, v.digit){
-    i.m <- 1L
-    i.x <- NULL
+fnDigitize <- function(d, vPrimes, mCount, vDigit){
+    m <- 1L
+    x <- NULL
     
-    while(i.m <= i.d){
-        i.l <- 1L
-        i.r <- 1L
-        while(i.r == 1L){
-            i.x <- m.count[i.m, i.l] != (v.primes[i.m] - 1L)
-            i.r <- i.r - i.x
-            m.count[i.m, i.l] <- (m.count[i.m, i.l] + 1L) * (i.x == 1L)
-            v.digit[i.m] <- ((i.l - 1L) == v.digit[i.m]) + v.digit[i.m]
-            i.l <- i.l + 1L
+    while(m <= d){
+        l <- 1L
+        r <- 1L
+        while(r == 1L){
+            x <- mCount[m, l] != (vPrimes[m] - 1L)
+            r <- r - x
+            mCount[m, l] <- (mCount[m, l] + 1L) * (x == 1L)
+            vDigit[m] <- ((l - 1L) == vDigit[m]) + vDigit[m]
+            l <- l + 1L
         }
-        i.m <- i.m + 1L
+        m <- m + 1L
     }
-    return(list(m.count, v.digit))
+    return(list(mCount, vDigit))
 }
 
 ##  Function for computing the radical inverse (Equation 2 in Bhat(2003))
-fn.rad.inverse <- function(i.d, v.primes, m.count, v.digit, m.perms){
-    i.m <- 1L
-    v.g <- matrix(0L, 1L, i.d)
+fnRadInverse <- function(d, vPrimes, mCount, vDigit, mPermTable){
+    m <- 1L
+    mG <- matrix(0L, 1L, d)
     
-    while(i.m <= i.d){
-        i.l <- 1L
-        d.p <- v.primes[i.m]
-        while(i.l <= v.digit[i.m]){
-            v.g[i.m] <- (m.perms[i.m, (m.count[i.m, i.l] + 1L)] / d.p) + v.g[i.m]
-            d.p <- d.p * v.primes[i.m]
-            i.l <- i.l + 1L
+    while(m <= d){
+        l <- 1L
+        dP <- vPrimes[m]
+        while(l <= vDigit[m]){
+            mG[m] <- (mPermTable[m, (mCount[m, l] + 1L)] / dP) + (mG[m])
+            dP <- dP * vPrimes[m]
+            l <- l + 1L
         }
-        i.m <- i.m + 1L
+        m <- m + 1L
     }
-    return(v.g)
+    return(mG)
 }
 
 ##  Code for generating the Halton sequence
-fn.generate.halton <- function(i.n, i.d){
-    if(i.d > 16L) stop("Cannot scramble Halton sequences beyond dimension 16.")
+fnGenerateHalton <- function(n, d){
+    if(d > 16L) stop("Cannot scramble Halton sequences beyond dimension 16.")
     
-    i.max.digit <- 50L
-    v.primes <- c(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53)
-    m.perms <- readRDS("../methods/m.xbrat.rds")
+    dMaxDigit <- 50L
+    vPrimes <- c(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53)
+    mPermTable <- readRDS("../methods/m.xbrat.rds")
     
-    m.h <- matrix(0, i.n, i.d)
-    v.primes <- v.primes[1:i.d]
+    mH <- matrix(0, n, d)
+    vPrimes <- vPrimes[1:d]
     
     ##  Get values for the first number in the halton sequence
-    ls.tmp <- fn.start(i.d, i.max.digit)
-    m.count <- ls.tmp[[1]]
-    v.digit <- ls.tmp[[2]]
+    ls.tmp <- fnStart(d, dMaxDigit)
+    mCount <- ls.tmp[[1]]
+    vDigit <- ls.tmp[[2]]
     
-    m.h[1L, ] <- fn.rad.inverse(i.d, v.primes, m.count, v.digit, m.perms)
+    mH[1L, ] <- fnRadInverse(d, vPrimes, mCount, vDigit, mPermTable)
     
     ##  For the rest of the numbers
-    i.j <- 2L
-    while(i.j <= i.n){
-        ls.tmp <- fn.digitize(i.d, v.primes, m.count, v.digit)
-        m.count <- ls.tmp[[1]]
-        v.digit <- ls.tmp[[2]]
+    j <- 2L
+    while(j <= n){
+        ls.tmp <- fnDigitize(d, vPrimes, mCount, vDigit)
+        mCount <- ls.tmp[[1]]
+        vDigit <- ls.tmp[[2]]
         
-        m.h[i.j, ] <- fn.rad.inverse(i.d, v.primes, m.count, v.digit, m.perms)
-        i.j <- i.j + 1L
+        mH[j, ] <- fnRadInverse(d, vPrimes, mCount, vDigit, mPermTable)
+        j <- j + 1L
     }
-    return(m.h)
+    return(mH)
 }
 
 ################################################################################
 ##  Function for generating random draws
 ################################################################################
-fn.generate.draws <- function(Estim.Opt){
+fnGenerateDraws <- function(EstimOpt){
+    ##  Define some overall parameters
+    iK <- length(EstimOpt$lsP_rand)
+    iR <- EstimOpt$iR
+    iN <- EstimOpt$iN
+    iD <- EstimOpt$iD
+    
+    ##  If we are estimating LC-MIXL
+    if(EstimOpt$bLatentClass && !EstimOpt$bEqualityConstrained){
+        iK <- length(EstimOpt$lsP_rand) * EstimOpt$iQ
+    }
+    
     ##  Check that the specified type of draws are reckognized by the code
-    if(!Estim.Opt$str.draws.type %in% c("pseudo", "halton", "sobol", "mlhs")){
+    if(!EstimOpt$strDrawType %in% c("pseudo", "halton", "sobol", "mlhs")){
         stop("Could not recognize type of draws. Please use one of the following: \n
              'pseudo', 'halton', 'sobol' or 'mlhs'.\n")
     }
     
     ##  Check that randtoolbox is loaded
     if(!("randtoolbox" %in% .packages())) require(randtoolbox)
-    
-    ##  Set the number of random variables
-    i.K <- length(Estim.Opt$ls.rand.par)
-    
-    ##  If we are estimating LC-MIXL
-    if(Estim.Opt$b.latent.class && !Estim.Opt$b.equality.constrained){
-        i.K <- length(Estim.Opt$ls.rand.par) * Estim.Opt$i.classes
-    }
-    
+
     ##  Pseudo-random draws
-    if(Estim.Opt$str.draws.type == "pseudo"){
-        m.draws <- matrix(runif(Estim.Opt$i.ind * Estim.Opt$i.draws * i.K),
-                          nrows = (Estim.Opt$i.ind * Estim.Opt$i.draws),
-                          ncol = i.K)
+    if(EstimOpt$strDrawType == "pseudo"){
+        mDraws <- matrix(runif(iN * iR * iK), nrows = (iN * iR), ncol = iK)
     }
     
     ##  Halton draws
-    if(Estim.Opt$str.draws.type == "halton"){
-        i.tmp <- (Estim.Opt$i.ind * Estim.Opt$i.draws) + Estim.Opt$i.drop
-        if(Estim.Opt$b.scramble){
-            m.draws <- fn.generate.halton(i.tmp, i.K)
+    if(EstimOpt$strDrawType == "halton"){
+        if(EstimOpt$bScramble){
+            mDraws <- fnGenerateHalton(((iN * iR) + iD), iK)
         } else {
-            m.draws <- halton(i.tmp, dim = i.K)
+            mDraws <- halton(((iN * iR) + iD), dim = iK)
         }
     }
     
     ##  Sobol draws
-    if(Estim.Opt$str.draws.type == "sobol"){
-        i.tmp <- Estim.Opt$i.ind * Estim.Opt$i.draws
-        if(Estim.Opt$b.scramble){
-            m.draws <- sobol(i.tmp, dim = i.K,
-                             scrambling = Estim.Opt$i.scrambling.type)
+    if(EstimOpt$strDrawType == "sobol"){
+        if(EstimOpt$bScramble){
+            mDraws <- sobol((iN * iR), dim = iK, scrambling = EstimOpt$iScrambleType)
         } else {
-            m.draws <- sobol(i.tmp, dim = i.K)
+            mDraws <- sobol((iN * iR), dim = iK)
         }
     }
     
     ##  MLHS draws
-    if(Estim.Opt$str.draws.type == "mlhs"){
-        m.draws <- fn.generate.mlhs(Estim.Opt$i.ind, i.K, Estim.Opt$i.draws)
+    if(EstimOpt$strDrawType == "mlhs"){
+        mDraws <- fnGenerateMLHS(iN, iK, iR)
     }
     
     ##  Return the matrix of draws
     ## IND*DRAWS x NVAR
-    m.draws <- as.matrix(m.draws)
-    if((Estim.Opt$str.draws.type %in% c("halton") && Estim.Opt$i.drop > 0L)){
-        return(as.matrix(qnorm(m.draws[-(1:Estim.Opt$i.drop), ])))
+    mDraws <- as.matrix(mDraws)
+    if((EstimOpt$strDrawType %in% c("halton") && iD > 0L)){
+        return(as.matrix(qnorm(mDraws[-(1:iD), ])))
     } else {
-        return(as.matrix(qnorm(m.draws)))
+        return(as.matrix(qnorm(mDraws)))
     }
 }
-
-
-

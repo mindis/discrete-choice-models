@@ -1,115 +1,113 @@
 ################################################################################
-##  Name:         r.script.ll.lc.mixl.R
+##  Name:         r.script.ll.eclc.mixl.R
 ##  Created:      2018.08.03
-##  Last edited:  2018.08.04
+##  Last edited:  2018.09.11
 ##  Author:       Erlend Dancke Sandorf
 ##  Contributors: N/A
 ################################################################################
 
-fn.log.lik <- function(v.param){
+fnLogLik <- function(vP){
+    ##  Set some overall parameters
+    iN <- nrow(lsX[[1]]) / EstimOpt$iT
+    iT <- EstimOpt$iT
+    iJ <- EstimOpt$iJ
+    iR <- EstimOpt$iR
+    iQ <- length(lsDelta)
+    
     ############################################################################
     ##  Class probability function
     ############################################################################
-    ##  Define some parameters
-    i.Q <- length(ls.delta)
+    iK_c <- length(EstimOpt$strP_class)
     
-    ##  Check if we are calculating probabilities using a discrete mixture
-    if(Estim.Opt$b.discrete.mixture){
-        ##  This is the discrete mixture
-        ##  The probs are calculated in the order of Estim.Opt$ls.constrained.par
-        v.theta <- v.param[ls.str.par.names[["str.class"]]]
+    if(EstimOpt$bDiscreteMixture){
+        vP_theta <- vP[lsParNames[["strP_class"]]]
         
-        ls.class.prob <- lapply(seq_along(ls.C), function(q){
-            iK <- length(Estim.Opt$str.class.par)
-            iS <- 1L + (iK * (q - 1L))
-            iE <- iK * q
+        lsPr_att <- lapply(seq_along(lsC), function(q){
+            iS <- 1L + (iK_c * (q - 1L))
+            iE <- iK_c * q
             ##  IND*CT
-            return(as.vector(crossprod(t(ls.C[[q]]), v.theta[iS:iE])))
+            as.vector(crossprod(t(lsC[[q]]), vP_theta[iS:iE]))
         })
         
         ##  Calculate the probability
-        ls.class.prob <- lapply(ls.class.prob, function(vT){
-            vPr <- 1L / (1L + exp(-(vT)))
-            # vPr[is.na(vPr)] <- 0L
+        lsPr_att <- lapply(lsPr_att, function(vC){
+            1 / (1 + exp(-(vC)))
+        })
+        
+        ##  Pr_att x IND*CT
+        mPr_att <- Reduce(rbind, lsPr_att)
+        
+        ##  Calculate the class probabilities
+        lsPr_class <- lapply(lsDelta, function(vD){
+            mD <- (mPr_att * vD) + ((1 - mPr_att) * (1 - vD))
+            vPr <- colProds(mD)
             return(vPr)
         })
         
-        ##  PR(ATT) x IND*CT
-        m.class.prob <- Reduce(rbind, ls.class.prob)
+        ##  IND*CT x iQ
+        mPr_class <- Reduce(cbind, lsPr_class)
+        mPr_class <- matrix(as.vector(mPr_class), nrow = iT)
+        ##  IND x iQ - na.rm = T handles missing CTs
+        mPr_class <- matrix(colMeans2(mPr_class, na.rm = T), ncol = iQ)
         
-        ##  Use the probs to create the mixing distribution
-        ls.class.prob <- lapply(ls.delta, function(vC){
-            mT <- (m.class.prob * vC) + ((1L - m.class.prob) * (1L - vC))
-            vT <- colProds(mT)
-            return(vT)
-        })
+        ############################################################################
+        rm(vP_theta, lsPr_att, lsPr_class, mPr_att)
+        ############################################################################
         
-        ## IND*CT x CLASSES
-        m.class.prob <- Reduce(cbind, ls.class.prob)
-        
-        ##  CT x IND*CLASSES
-        m.class.prob <- matrix(as.vector(m.class.prob), nrow = Estim.Opt$i.tasks)
-        
-        ########################################################################
-        rm(v.theta, ls.class.prob)
-        ########################################################################
-        
-    } else {
+    } else{
         ##  Zeros are added for the normalizing class
-        v.theta <- c(v.param[ls.str.par.names[["str.class"]]],
-                     rep(0L, length(Estim.Opt$str.class.par)))
+        vP_theta <- c(vP[lsParNames[["strP_class"]]], rep(0L, iK_c))
         
-        ls.class.prob <- lapply(seq_along(ls.C), function(i.x){
-            i.K <- length(Estim.Opt$str.class.par)
-            i.start <- 1L + (i.K * (i.x - 1L))
-            i.end <- i.K * i.x
+        lsPr_class <- lapply(seq_along(lsC), function(q){
+            iS <- 1L + (iK_c * (q - 1L))
+            iE <- iK_c * q
             ##  IND*CT
-            exp(crossprod(t(ls.C[[i.x]]), v.theta[i.start:i.end]))
+            exp(crossprod(t(lsC[[q]]), vP_theta[iS:iE]))
         })
         
         ##  Calculate the probability - Vector IND*CT
-        v.class.prob.sum <- Reduce("+", ls.class.prob)
-        ls.class.prob <- lapply(ls.class.prob, function(v.x){
-            v.prob <- v.x / v.class.prob.sum
-            v.prob[is.na(v.prob)] <- 0
-            as.vector(v.prob)
+        vPr_class_sum <- Reduce("+", lsPr_class)
+        lsPr_class <- lapply(lsPr_class, function(vC){
+            vPr <- vC / vPr_class_sum
+            # vPr[is.na(vPr)] <- 0
+            as.vector(vPr)
         })
         
-        ##  IND*CT x CLASSES
-        m.class.prob <- Reduce(cbind, ls.class.prob)
-        ##  CT x IND*CLASSES
-        m.class.prob <- matrix(as.vector(m.class.prob), nrow = Estim.Opt$i.tasks)
+        ##  IND*CT x iQ
+        mPr_class <- Reduce(cbind, lsPr_class)
+        mPr_class <- matrix(as.vector(mPr_class), nrow = iT)
+        ##  IND x iQ - na.rm = T handles missing CTs
+        mPr_class <- matrix(colMeans2(mPr_class, na.rm = T), ncol = iQ)
         
-        ########################################################################
-        rm(v.theta, ls.class.prob, v.class.prob.sum)
-        ########################################################################
+        ############################################################################
+        rm(vP_theta, lsPr_class, vPr_class_sum)
+        ############################################################################
     }
     
     ############################################################################
     ##  Make the betas IND*DRAWS x NVAR
     ############################################################################
-    v.beta.r <- v.param[ls.str.par.names[["str.mean"]]]
-    v.sigma.r <- v.param[ls.str.par.names[["str.std"]]]
-    m.beta <- fn.make.beta(Estim.Opt, v.beta.r, v.sigma.r, m.draws)
+    vP_mean <- vP[lsParNames[["strP_mean"]]]
+    vP_sigma <- vP[lsParNames[["strP_std"]]]
+    mBeta <- fnMakeBeta(EstimOpt, vP_mean, vP_sigma, mDraws)
     
     ############################################################################
-    rm(v.beta.r, v.sigma.r)
+    rm(vP_mean, vP_sigma)
     ############################################################################
     
     ############################################################################
-    ##  Interactions with the means m.H -- IND*DRAWS x NVAR
+    ##  Interactions with the means mH -- IND*DRAWS x NVAR
     ############################################################################
-    if(length(Estim.Opt$ls.het.par) > 0){
-        v.phi <- v.param[ls.str.par.names[["str.het"]]]
-        for(i in seq_along(Estim.Opt$ls.het.par)){
-            str.tmp <- names(Estim.Opt$ls.het.par[i])
-            v.phi.tmp <- v.phi[grep(str.tmp, names(v.phi))]
-            ##  Multiply data with parameters
-            m.tmp <- crossprod(t(m.H[, Estim.Opt$ls.het.par[[i]]]), v.phi.tmp)
-            if(Estim.Opt$ls.rand.par[[str.tmp]] %in% c("-ln", "ln")){
-                m.beta[, str.tmp] <- m.beta[, str.tmp] * exp(m.tmp)
+    if(length(EstimOpt$lsP_het) > 0){
+        vP_phi <- vP[lsParNames[["strP_het"]]]
+        for(i in seq_along(EstimOpt$lsP_het)){
+            strNames_tmp <- names(EstimOpt$lsP_het[i])
+            vP_phi_tmp <- vP_phi[grep(strNames_tmp, names(vP_phi))]
+            vZ_tmp <- crossprod(t(mH[, EstimOpt$lsP_het[[i]]]), vP_phi_tmp)
+            if(EstimOpt$lsP_rand[[strNames_tmp]] %in% c("-ln", "ln")){
+                mBeta[, strNames_tmp] <- mBeta[, strNames_tmp] * exp(vZ_tmp)
             } else{
-                m.beta[, str.tmp] <- m.beta[, str.tmp] + m.tmp
+                mBeta[, strNames_tmp] <- mBeta[, strNames_tmp] + vZ_tmp
             }
         }
     }
@@ -118,134 +116,153 @@ fn.log.lik <- function(v.param){
     ##  Check if we are calculating utility in WTP space -- does not work with 
     ##  fixed parameters
     ############################################################################
-    if(Estim.Opt$b.wtp.space){
-        v.cost <- m.beta[, Estim.Opt$str.cost]
-        m.beta[, Estim.Opt$str.cost] <- 1L
+    if(EstimOpt$bWTP_space){
+        vB_cost <- mBeta[, EstimOpt$strP_cost]
+        mBeta[, EstimOpt$strP_cost] <- 1L
         ##  IND*DRAWS x NVAR
-        m.beta <- m.beta * v.cost
+        mBeta <- mBeta * vB_cost
+        rm(vB_cost)
     }
     
     ############################################################################
     ##  Create a list of betas (length of iQ) and calculate the random part of utility
     ############################################################################
-    ls.beta <- lapply(seq_len(i.Q), function(q){
-        mT <- m.beta
-        ##  NVAR x IND*DRAWS
-        return(t(mT))
-    })
+    ##  NVAR x IND*DRAWS
+    lsBeta <- lapply(seq_len(iQ), function(q) t(mBeta))
     
-    ##  Turn into a list
-    ls.delta.expanded <- lapply(as.list(as.data.frame(m.delta.expanded)),
-                                function(vX) {
-                                    # return(rev(vX))
-                                    return(vX)
-                                })
+    ##  Turn the deltas into a list for processing with mapply()
+    lsDeltaExpanded <- lapply(as.list(as.data.frame(mDeltaExpanded)), function(vD) vD) 
     
     ##  Multiply with the restriction.
-    ls.beta <- mapply("*", ls.beta, ls.delta.expanded, SIMPLIFY = F)
+    lsBeta <- mapply("*", lsBeta, lsDeltaExpanded, SIMPLIFY = F)
     
     ##  Constrained and of dim IND*DRAWS x NVAR
-    ls.beta <- lapply(ls.beta, function(mB) return(t(mB)))
+    lsBeta <- lapply(lsBeta, function(mBeta) return(t(mBeta)))
     
     ##  Subset the data to get the variables with random parameters
-    ls.X.r <- lapply(ls.X, function(m.x){
+    lsX_r <- lapply(lsX, function(mX){
         ##  IND*CT x NVAR
-        m.x[, names(Estim.Opt$ls.rand.par), drop = FALSE]
+        mX[, names(EstimOpt$lsP_rand), drop = F]
     })
     
-    i.T <- Estim.Opt$i.tasks
-    i.D <- Estim.Opt$i.draws
-    i.ind <- nrow(ls.X.r[[1L]]) / i.T
+    ############################################################################
+    ##  Set up the fixed parameters -- if any
+    ############################################################################
+    if(length(EstimOpt$strP_fixed) > 0){
+        mP_fixed <- matrix(rep(vP[lsParNames[["strP_fixed"]]], times = iQ), ncol = iQ)
+        rownames(mP_fixed) <- EstimOpt$strP_fixed
+        
+        ##  Impose the equality constraint
+        mP_fixed <- mP_fixed * mDeltaExpanded
+    }
     
     ############################################################################
     ##  Use lapply() to calculate for each constrained beta matrix
     ############################################################################
-    ls.lik <- lapply(ls.beta, function(mB){
+    lsLik <- lapply(seq_len(iQ), function(q){
+        ##  Set the beta matrix
+        mBeta <- lsBeta[[q]]
+        
         ########################################################################
         ##  Calculate the random part of utility
         ########################################################################
-        ls.utility <- lapply(seq_len(Estim.Opt$i.alts), function(i.x){
-            matrix(NA, nrow(ls.X.r[[1L]]), Estim.Opt$i.draws)
+        ##  Empty matrix IND*CT x DRAWS
+        lsU <- lapply(seq_len(iJ), function(i.x){
+            matrix(NA, nrow(lsX_r[[1L]]), iR)
         })
         
         ##  IND*CT x DRAWS
-        for(i.i in 1L:i.ind){
-            v.rows <- (1L + ((i.i - 1L) * i.T)):(i.i * i.T)
-            for(i.j in 1L:Estim.Opt$i.alts){
-                ls.utility[[i.j]][v.rows, ] <- tcrossprod(ls.X.r[[i.j]][v.rows, , drop = FALSE],
-                                                          mB[(1L + ((i.i - 1L) * i.D)):(i.i * i.D), ])
+        for(n in 1L:iN){
+            vRows <- (1L + ((n - 1L) * iT)):(n * iT)
+            for(j in 1L:iJ){
+                lsU[[j]][vRows, ] <- tcrossprod(lsX_r[[j]][vRows, , drop = F],
+                                                mBeta[(1L + ((n - 1L) * iR)):(n * iR), ])
             }
         }
         
-        ############################################################################
+        ########################################################################
         ##  Calculate the fixed part of utility
-        ############################################################################
-        if(length(Estim.Opt$str.fixed.par) > 0){
-            v.beta.f <- v.param[ls.str.par.names[["str.fixed"]]]
-            ls.X.f <- lapply(ls.X, function(m.x){
+        ########################################################################
+        if(length(EstimOpt$strP_fixed) > 0){
+            vP_fixed <- mP_fixed[, q]
+            lsX_f <- lapply(lsX, function(mX){
                 ##  IND*CT x NVAR
-                m.x[, Estim.Opt$str.fixed.par, drop = FALSE]
+                mX[, EstimOpt$strP_fixed, drop = F]
             })
             
-            ls.utility.f <- lapply(ls.X.f, function(m.x){
-                v.u <- as.vector(crossprod(t(m.x), v.beta.f))
+            lsU_f <- lapply(lsX_f, function(mX){
+                vU <- as.vector(crossprod(t(mX), vP_fixed))
                 ##  IND*CT
-                return(v.u)
+                return(vU)
             })
             
             ## IND*CT x DRAWS
-            ls.utility <- mapply(function(m.x, m.y){m.x + m.y},
-                                 ls.utility, ls.utility.f, SIMPLIFY = FALSE)
+            lsU <- mapply(function(mX, mY){mX + mY}, lsU, lsU_f, SIMPLIFY = F)
             
-            ########################################################################
-            rm(ls.X.f, ls.utility.f)
-            ########################################################################
+            ####################################################################
+            rm(lsX_f, lsU_f)
+            ####################################################################
         }
         
-        ############################################################################
+        ########################################################################
         ##  Check if we are estimating relative scale parameters
-        ############################################################################
-        if(Estim.Opt$b.relative.scale){
-            v.lambda <- c(v.param[ls.str.par.names[["str.scale"]]], 1L)
+        ########################################################################
+        if(EstimOpt$bRelativeScale){
+            vP_lambda <- c(vP[lsParNames[["strP_scale"]]], 1L)
             ##  IND*CT
-            v.scale <- crossprod(t(m.R), v.lambda) / 1L
-            v.scale <- as.vector(v.scale)
+            vS <- crossprod(t(mR), vP_lambda) / 1L
+            vS <- as.vector(vS)
             
-            ## IND*CT x DRAWS
-            ls.utility <- lapply(ls.utility, function(m.x){
-                return(m.x * v.scale)
+            ## IND*CT 
+            lsU <- lapply(lsU, function(mX){
+                return(mX * vS)
             })
             
-            ########################################################################
-            rm(v.scale)
-            ########################################################################
+            ####################################################################
+            rm(vS)
+            ####################################################################
+        }
+        
+        ########################################################################
+        ##  Rescale utility
+        ########################################################################
+        if(EstimOpt$bRescaleUtility){
+            mU_max <- Reduce(pmax, lsU)
+            mU_min <- Reduce(pmin, lsU)
+            mU_mid <- (mU_max + mU_min) / 2L
+            lsU <- lapply(lsU, function(mX){mX - mU_mid})
+            
+            ####################################################################
+            rm(mU_max, mU_min, mU_mid)
+            ####################################################################
         }
         
         ############################################################################
         ##  Calculating the probability of the chosen alternative
         ############################################################################
-        ls.exp.utility <- lapply(ls.utility, function(m.x) exp(m.x))
-        m.sum.utility <- Reduce("+", ls.exp.utility)
-        ls.prob.alt <- lapply(ls.exp.utility, function(m.x) m.x /m.sum.utility)
-        ls.prob.chosen <- mapply("*", ls.prob.alt, ls.Y, SIMPLIFY = FALSE)
-        ##  IND*CT x DRAWS
-        m.prob.chosen <- Reduce("+", ls.prob.chosen)
-        m.prob.chosen <- matrix(m.prob.chosen, nrow = Estim.Opt$i.tasks)
+        lsU_exp <- lapply(lsU, function(mX) exp(mX))
+        mU_sum <- Reduce("+", lsU_exp)
+        lsPr_alt <- lapply(lsU_exp, function(mX) mX / mU_sum )
+        lsPr_chosen <- mapply('*', lsPr_alt, lsY, SIMPLIFY = FALSE)
+        mPr_chosen <- Reduce('+', lsPr_chosen)
+        
+        ##  CT x IND*DRAWS
+        mPr_chosen <- matrix(mPr_chosen, nrow = iT)
         
         ############################################################################
-        rm(ls.exp.utility, m.sum.utility, ls.prob.alt, ls.prob.chosen)
+        rm(lsU_exp, mU_sum, lsPr_alt, lsPr_chosen)
         ############################################################################
         
         ############################################################################
         ##  Check whether the data was complete
         ############################################################################
-        if(!Estim.Opt$b.complete.data){
-            if(any(is.nan(m.prob.chosen))){
-                m.tmp <- as.logical(is.na(m.prob.chosen) - is.nan(m.prob.chosen))
-                m.prob.chosen[m.tmp] <- 1L
-                rm(m.tmp)
+        if(!EstimOpt$bCompleteData){
+            if(any(is.nan(mPr_chosen))){
+                mPr_tmp <- as.logical(is.na(mPr_chosen) - is.nan(mPr_chosen))
+                mPr_chosen[mPr_tmp] <- 1L
+                rm(mPr_tmp)
             } else{
-                m.prob.chosen[is.na(m.prob.chosen)] <- 1L
+                mPr_chosen[is.na(mPr_chosen)] <- 1L
             }
         }
         
@@ -253,25 +270,23 @@ fn.log.lik <- function(v.param){
         ##  Calculate the log likelihood value
         ############################################################################
         ##  Take the product over choice tasks - IND*DRAWS
-        v.prob.sequence <- colProds(m.prob.chosen)
+        vPr_seq <- colProds(mPr_chosen)
         
         ##  Average over draws - IND
-        v.lik <- rowMeans2(matrix(v.prob.sequence, nrow = (nrow(ls.X[[1]])/Estim.Opt$i.tasks)))
-        return(v.lik)
+        vLik <- rowMeans2(matrix(vPr_seq, nrow = iN))
+        return(vLik)
     })
     
-    ##  IND x CLASS
-    m.lik <- Reduce(cbind, ls.lik)
-  
-    ##  IND*CLASS 
-    v.class.prob <- colMeans2(m.class.prob, na.rm = T)
-    ##  IND x CLASS
-    m.class.prob <- matrix(v.class.prob, ncol = i.Q)
+    ############################################################################
+    ##  Calculate the log likelihood value
+    ############################################################################
+    ##  IND x iQ
+    mLik <- Reduce(cbind, lsLik)
     
     ##  Calculate the likelihood
-    v.lik <- rowSums2(m.class.prob * m.lik)
+    vLik <- rowSums2(mPr_class * mLik)
     
     ##  Take the log
-    v.log.lik <- log(v.lik)
-    return(v.log.lik)
+    vLogLik <- log(vLik)
+    return(vLogLik)
 }

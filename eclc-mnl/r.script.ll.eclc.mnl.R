@@ -1,190 +1,186 @@
 ################################################################################
-##  Name:         r.script.ll.lc.R
+##  Name:         r.script.ll.eclc.mnl.R
 ##  Created:      2018.08.10
-##  Last edited:  2018.08.10
+##  Last edited:  2018.09.11
 ##  Author:       Erlend Dancke Sandorf
 ##  Contributors: N/A
 ################################################################################
 
-fn.log.lik <- function(v.param){
+fnLogLik <- function(vP){
+    ##  Set some overall parameters
+    iN <- nrow(lsX[[1]]) / EstimOpt$iT
+    iT <- EstimOpt$iT
+    iJ <- EstimOpt$iJ
+    iR <- EstimOpt$iR
+    iQ <- length(lsDelta)
+    
     ############################################################################
     ##  Class probability function
     ############################################################################
-    ##  Define some parameters
-    i.Q <- length(ls.delta)
+    iK_c <- length(EstimOpt$strP_class)
     
-    ##  Check if we are calculating probabilities using a discrete mixture
-    if(Estim.Opt$b.discrete.mixture){
-        ##  This is the discrete mixture
-        v.theta <- v.param[ls.str.par.names[["str.class"]]]
+    if(EstimOpt$bDiscreteMixture){
+        vP_theta <- vP[lsParNames[["strP_class"]]]
         
-        ls.class.prob <- lapply(seq_along(ls.C), function(q){
-            iK <- length(Estim.Opt$str.class.par)
-            iS <- 1L + (iK * (q - 1L))
-            iE <- iK * q
+        lsPr_att <- lapply(seq_along(lsC), function(q){
+            iS <- 1L + (iK_c * (q - 1L))
+            iE <- iK_c * q
             ##  IND*CT
-            return(as.vector(crossprod(t(ls.C[[q]]), v.theta[iS:iE])))
+            as.vector(crossprod(t(lsC[[q]]), vP_theta[iS:iE]))
         })
         
         ##  Calculate the probability
-        ls.class.prob <- lapply(ls.class.prob, function(vT){
-            vPr <- 1L / (1L + exp(-(vT)))
-            # vPr[is.na(vPr)] <- 0L
+        lsPr_att <- lapply(lsPr_att, function(vC){
+           1 / (1 + exp(-(vC)))
+        })
+        
+        ##  Pr_att x IND*CT
+        mPr_att <- Reduce(rbind, lsPr_att)
+        
+        ##  Calculate the class probabilities
+        lsPr_class <- lapply(lsDelta, function(vD){
+            mD <- (mPr_att * vD) + ((1 - mPr_att) * (1 - vD))
+            vPr <- colProds(mD)
             return(vPr)
         })
         
-        ##  PR(ATT) x IND*CT
-        m.class.prob <- Reduce(rbind, ls.class.prob)
+        ##  IND*CT x iQ
+        mPr_class <- Reduce(cbind, lsPr_class)
+        mPr_class <- matrix(as.vector(mPr_class), nrow = iT)
+        ##  IND x iQ - na.rm = T handles missing CTs
+        mPr_class <- matrix(colMeans2(mPr_class, na.rm = T), ncol = iQ)
         
-        ##  Use the probs to create the mixing distribution
-        ls.class.prob <- lapply(ls.delta, function(vC){
-            mT <- (m.class.prob * vC) + ((1L - m.class.prob) * (1L - vC))
-            vT <- colProds(mT)
-            return(vT)
-        })
+        ############################################################################
+        rm(vP_theta, lsPr_att, lsPr_class, mPr_att)
+        ############################################################################
         
-        ## IND*CT x CLASSES
-        m.class.prob <- Reduce(cbind, ls.class.prob)
-        
-        ##  CT x IND*CLASSES
-        m.class.prob <- matrix(as.vector(m.class.prob), nrow = Estim.Opt$i.tasks)
-        
-        ########################################################################
-        rm(v.theta, ls.class.prob)
-        ########################################################################
-        
-    } else {
+    } else{
         ##  Zeros are added for the normalizing class
-        v.theta <- c(v.param[ls.str.par.names[["str.class"]]],
-                     rep(0L, length(Estim.Opt$str.class.par)))
+        vP_theta <- c(vP[lsParNames[["strP_class"]]], rep(0L, iK_c))
         
-        ls.class.prob <- lapply(seq_along(ls.C), function(i.x){
-            i.K <- length(Estim.Opt$str.class.par)
-            i.start <- 1L + (i.K * (i.x - 1L))
-            i.end <- i.K * i.x
+        lsPr_class <- lapply(seq_along(lsC), function(q){
+            iS <- 1L + (iK_c * (q - 1L))
+            iE <- iK_c * q
             ##  IND*CT
-            exp(crossprod(t(ls.C[[i.x]]), v.theta[i.start:i.end]))
+            exp(crossprod(t(lsC[[q]]), vP_theta[iS:iE]))
         })
         
         ##  Calculate the probability - Vector IND*CT
-        v.class.prob.sum <- Reduce("+", ls.class.prob)
-        ls.class.prob <- lapply(ls.class.prob, function(v.x){
-            v.prob <- v.x / v.class.prob.sum
-            v.prob[is.na(v.prob)] <- 0
-            as.vector(v.prob)
+        vPr_class_sum <- Reduce("+", lsPr_class)
+        lsPr_class <- lapply(lsPr_class, function(vC){
+            vPr <- vC / vPr_class_sum
+            # vPr[is.na(vPr)] <- 0
+            as.vector(vPr)
         })
         
-        ##  IND*CT x CLASSES
-        m.class.prob <- Reduce(cbind, ls.class.prob)
-        ##  CT x IND*CLASSES
-        m.class.prob <- matrix(as.vector(m.class.prob), nrow = Estim.Opt$i.tasks)
+        ##  IND*CT x iQ
+        mPr_class <- Reduce(cbind, lsPr_class)
+        mPr_class <- matrix(as.vector(mPr_class), nrow = iT)
+        ##  IND x iQ - na.rm = T handles missing CTs
+        mPr_class <- matrix(colMeans2(mPr_class, na.rm = T), ncol = iQ)
         
-        ########################################################################
-        rm(v.theta, ls.class.prob, v.class.prob.sum)
-        ########################################################################
+        ############################################################################
+        rm(vP_theta, lsPr_class, vPr_class_sum)
+        ############################################################################
     }
 
     ############################################################################
     ##  Set up the matrix of betas
     ############################################################################
-    m.beta.f <- matrix(rep(v.param[ls.str.par.names[["str.fixed"]]], times = i.Q),
-                       ncol = i.Q)
-    rownames(m.beta.f) <- Estim.Opt$str.fixed.par
+    mP_fixed <- matrix(rep(vP[lsParNames[["strP_fixed"]]], times = iQ),
+                       ncol = iQ)
+    rownames(mP_fixed) <- EstimOpt$strP_fixed
     
     ##  Impose the equality constraint
-    m.beta.f <- m.beta.f * m.delta.expanded
+    mP_fixed <- mP_fixed * mDeltaExpanded
     
     ############################################################################
     ##  Check if we are calculating utility in WTP space 
     ############################################################################
-    if(Estim.Opt$b.wtp.space){
-        i.cost.pos <- grep(Estim.Opt$str.cost, Estim.Opt$str.fixed.par)
-        v.cost <- m.beta.f[i.cost.pos, ]
-        m.beta.f[i.cost.pos, ] <- 1L
-        m.beta.f <- t(t(m.beta.f) * v.cost)
+    if(EstimOpt$bWTP_space){
+        iC <- grep(EstimOpt$strP_cost, EstimOpt$strP_fixed)
+        vP_cost <- mP_fixed[iC, ]
+        mP_fixed[iC, ] <- 1L
+        mP_fixed <- t(t(mP_fixed) * vP_cost)
     }    
     
     ############################################################################
-    ##  Calculate the fixed part of utility -- IND*CT x CLASSES
+    ##  Calculate the fixed part of utility
     ############################################################################
-    ls.utility <- lapply(ls.X, function(m.x) tcrossprod(m.x, t(m.beta.f)))
+    lsU <- lapply(lsX, function(mX) tcrossprod(mX, t(mP_fixed)))
     
     ############################################################################
     ##  Check if we are estimating relative scale parameters
     ############################################################################
-    if(Estim.Opt$b.relative.scale){
-        v.lambda <- c(v.param[ls.str.par.names[["str.scale"]]], 1L)
+    if(EstimOpt$bRelativeScale){
+        vP_lambda <- c(vP[lsParNames[["strP_scale"]]], 1L)
         ##  IND*CT
-        v.scale <- crossprod(t(m.R), v.lambda) / 1L
-        v.scale <- as.vector(v.scale)
+        vS <- crossprod(t(mR), vP_lambda) / 1L
+        vS <- as.vector(vS)
         
         ## IND*CT 
-        ls.utility <- lapply(ls.utility, function(m.x){
-            return(m.x * v.scale)
+        lsU <- lapply(lsU, function(mX){
+            return(mX * vS)
         })
         
         ########################################################################
-        rm(v.scale)
+        rm(vS)
         ########################################################################
     }
     
     ############################################################################
     ##  Rescale utility
     ############################################################################
-    if(Estim.Opt$b.rescale.utility){
-        m.utility.max <- Reduce(pmax, ls.utility)
-        m.utility.min <- Reduce(pmin, ls.utility)
-        m.utility.mid <- (m.utility.max + m.utility.min) / 2L
-        ls.utility <- lapply(ls.utility, function(m.x){m.x - m.utility.mid})
+    if(EstimOpt$bRescaleUtility){
+        mU_max <- Reduce(pmax, lsU)
+        mU_min <- Reduce(pmin, lsU)
+        mU_mid <- (mU_max + mU_min) / 2L
+        lsU <- lapply(lsU, function(mX){mX - mU_mid})
         
         ########################################################################
-        rm(m.utility.max, m.utility.min, m.utility.mid)
+        rm(mU_max, mU_min, mU_mid)
         ########################################################################
     }
     
     ############################################################################
     ##  Calculating the probability of the chosen alternative
     ############################################################################
-    ls.exp.utility <- lapply(ls.utility, function(m.x) exp(m.x))
-    m.sum.utility <- Reduce('+', ls.exp.utility)
-    ls.prob.alt <- lapply(ls.exp.utility, function(m.x) {
-        v <- m.x / m.sum.utility
-    })
-    ls.prob.chosen <- mapply('*', ls.prob.alt, ls.Y, SIMPLIFY = FALSE)
-    m.prob.chosen <- Reduce('+', ls.prob.chosen)
-    ##  CT x IND*CLASS
-    m.prob.chosen <- matrix(as.vector(m.prob.chosen), nrow = Estim.Opt$i.tasks)
+    lsU_exp <- lapply(lsU, function(mX) exp(mX))
+    mU_sum <- Reduce("+", lsU_exp)
+    lsPr_alt <- lapply(lsU_exp, function(mX) mX / mU_sum)
+    lsPr_chosen <- mapply('*', lsPr_alt, lsY, SIMPLIFY = FALSE)
+    mPr_chosen <- Reduce('+', lsPr_chosen)
+    
+    ##  CT x IND*iQ
+    mPr_chosen <- matrix(mPr_chosen, nrow = iT)
     
     ############################################################################
-    rm(ls.exp.utility, m.sum.utility, ls.prob.alt, ls.prob.chosen)
+    rm(lsU_exp, mU_sum, lsPr_alt, lsPr_chosen)
     ############################################################################
-
+    
     ############################################################################
     ##  Check whether the data was complete
     ############################################################################
-    if(!Estim.Opt$b.complete.data){
-        if(any(is.nan(m.prob.chosen))){
-            m.tmp <- as.logical(is.na(m.prob.chosen) - is.nan(m.prob.chosen))
-            m.prob.chosen[m.tmp] <- 1L
-            rm(m.tmp)
+    if(!EstimOpt$bCompleteData){
+        if(any(is.nan(mPr_chosen))){
+            mPr_tmp <- as.logical(is.na(mPr_chosen) - is.nan(mPr_chosen))
+            mPr_chosen[mPr_tmp] <- 1L
+            rm(mPr_tmp)
         } else{
-            m.prob.chosen[is.na(m.prob.chosen)] <- 1L
+            mPr_chosen[is.na(mPr_chosen)] <- 1L
         }
     }
     
     ############################################################################
     ##  Calculate the log likelihood value
     ############################################################################
-    ##  IND*CLASS
-    v.prob.sequence <- colProds(m.prob.chosen)
-    ##  IND*CLASS
-    v.class.prob <- colMeans2(m.class.prob, na.rm = T)
+    ##  Take the product over choice tasks - IND*iQ
+    vPr_seq <- colProds(mPr_chosen)
     
     ##  Rearrange the LC matrix IND x CLASS
-    m.prob.sequence <- matrix(v.prob.sequence, ncol = i.Q)
-    m.class.prob <- matrix(v.class.prob, ncol = i.Q)
+    mPr_seq <- matrix(vPr_seq, ncol = iQ)
     
-    v.lik <- rowSums2(m.class.prob * m.prob.sequence)
-    v.log.lik <- log(v.lik)
-    return(v.log.lik)
+    vLik <- rowSums2(mPr_class * mPr_seq)
+    vLogLik <- log(vLik)
+    return(vLogLik)
 }
