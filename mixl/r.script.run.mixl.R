@@ -243,13 +243,8 @@ EstimOpt$lsP_rand <- list(cost = "-ln", small = "n", large = "n",
 ##                      interactoins. If FALSE - assumed to be the same across
 ##                      classes.
 ################################################################################
-<<<<<<< HEAD
-Estim.Opt$ls.het.par <-  list(cost = c("above.median"), small = c("above.median"))
-Estim.Opt$b.class.specific <- FALSE
-=======
 EstimOpt$lsP_het <-  list()
 EstimOpt$bClassSpecific <- FALSE
->>>>>>> notation-update
 
 ################################################################################
 ##  Specify whether we are estimating relative scale parameters
@@ -331,11 +326,7 @@ EstimOpt$dMulti <- 1.5
 EstimOpt$iSeed <- 57888385L
 
 ##  Vector of starting values the length of the number of parameters
-<<<<<<< HEAD
-v.param <- c(runif(6), rep(0.1, 6), runif(2))
-=======
 vP <-  c(rep(0, 6), rep(0.1, 6))
->>>>>>> notation-update
 
 ################################################################################
 ### Start running the model
