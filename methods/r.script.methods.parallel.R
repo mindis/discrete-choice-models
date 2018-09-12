@@ -75,9 +75,9 @@ fnSetUpWorker <- function(lsCluster, EstimOpt){
         
         ##  Export the list/matrix of constraints
         if(EstimOpt$bEqualityConstrained){
-            clusterExport(lsCluster, "lsDdelta")
+            clusterExport(lsCluster, "lsDelta")
             clusterExport(lsCluster, "mDeltaExpanded")
-            rm(lsDelta, mDeltExpanded, envir = .GlobalEnv)
+            rm(lsDelta, mDeltaExpanded, envir = .GlobalEnv)
         }
     }
     

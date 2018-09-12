@@ -131,10 +131,10 @@ EstimOpt$bFinalHessian <- FALSE
 ##
 ##  See ?parallel
 ################################################################################
-EstimOpt$bParallel <- FALSE
+EstimOpt$bParallel <- TRUE
 EstimOpt$strDebugFile <- "" 
 EstimOpt$bPrintWorkerInfo <- TRUE 
-EstimOpt$iCores <- 2L
+EstimOpt$iCores <- 3L
 EstimOpt$strPackages <- c("maxLik", "numDeriv", "matrixStats", "msm", "pryr",
                           "MASS")
 
@@ -210,9 +210,9 @@ EstimOpt$bWTP_space <- FALSE
 EstimOpt$bMakeDraws <- TRUE
 EstimOpt$bCorrelation <- FALSE
 EstimOpt$strDrawType <- "halton" 
-EstimOpt$iR <- 50L
-EstimOpt$iD <- 10L
-EstimOpt$bScramble <- FALSE
+EstimOpt$iR <- 500L
+EstimOpt$iD <- 100L
+EstimOpt$bScramble <- TRUE
 EstimOpt$iScrambleType <- 3L 
 
 ################################################################################
@@ -270,7 +270,7 @@ EstimOpt$strP_scale <- c("above.median", "below.median")
 ################################################################################
 EstimOpt$bLatentClass <- TRUE
 EstimOpt$iQ <- 2L
-EstimOpt$strP_class <- c("const")
+EstimOpt$strP_class <- c("const", "above.median")
 
 ################################################################################
 ##  Specify equality constraints (to use in AN-A models)
@@ -329,7 +329,7 @@ EstimOpt$dMulti <- 1.5
 EstimOpt$iSeed <- 57888385L
 
 ##  Vector of starting values the length of the number of parameters
-vP <-  c(runif(6), rep(0.1, 6), rep(0.5, 4))
+vP <-  c(runif(6), rep(0.1, 6), rep(0.5, 8))
 
 ################################################################################
 ### Start running the model
