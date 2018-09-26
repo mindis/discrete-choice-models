@@ -14,6 +14,13 @@ fnLogLik <- function(vP){
     iR <- EstimOpt$iR
     
     ############################################################################
+    ##  Get the fixed parameters -- used to sort WTP space 
+    ############################################################################
+    if(length(EstimOpt$strP_fixed) > 0){
+        vP_fixed <- vP[lsParNames[["strP_fixed"]]]
+    }
+    
+    ############################################################################
     ##  Make the betas IND*DRAWS x NVAR
     ############################################################################
     vP_mean <- vP[lsParNames[["strP_mean"]]]
@@ -76,7 +83,6 @@ fnLogLik <- function(vP){
     ##  Calculate the fixed part of utility
     ############################################################################
     if(length(EstimOpt$strP_fixed) > 0){
-        vP_fixed <- vP[lsParNames[["strP_fixed"]]]
         lsX_f <- lapply(lsX, function(mX){
             ##  IND*CT x NVAR
             mX[, EstimOpt$strP_fixed, drop = F]
