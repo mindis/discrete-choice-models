@@ -10,7 +10,7 @@
 ################################################################################
 
 The model allows for the following specifications: 
-	i) 	WTP space
+	i) 	WTP space (works with mixed fixed and random parameters)
 	ii) 	With correlations among the random parameters
 	iii)	Interacting socio-demographic variables with the means of the distributions
 	iv)	Mix of fixed and random parameters

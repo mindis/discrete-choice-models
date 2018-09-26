@@ -176,7 +176,7 @@ EstimOpt$strP_cost <-  "cost"
 ##  
 ##  If no variables have non-random parameters - leave empty: c()
 ################################################################################
-EstimOpt$strP_fixed <- c("cost")
+EstimOpt$strP_fixed <- c()
 
 ################################################################################
 ##  Estimate in willingness-to-pay space
@@ -230,7 +230,7 @@ EstimOpt$iScrambleType <- 3L
 ##
 ##  If no variables have random parameters - leave empty: list()
 ################################################################################
-EstimOpt$lsP_rand <- list(small = "n", large = "n",
+EstimOpt$lsP_rand <- list(cost = "-ln", small = "n", large = "n",
                           oil = "n", fish = "n", hab = "n")
 
 ################################################################################
@@ -326,7 +326,7 @@ EstimOpt$dMulti <- 1.5
 EstimOpt$iSeed <- 57888385L
 
 ##  Vector of starting values the length of the number of parameters
-vP <-  c(rep(0, 6), rep(0.1, 5))
+vP <-  c(rep(0, 6), rep(0.1, 6))
 
 ################################################################################
 ### Start running the model

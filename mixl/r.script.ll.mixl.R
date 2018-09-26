@@ -45,12 +45,35 @@ fnLogLik <- function(vP){
     }
     
     ############################################################################
-    ##  Check if we are calculating utility in WTP space -- does not work with 
-    ##  fixed parameters
+    ##  Check if we are calculating utility in WTP space 
     ############################################################################
     if(EstimOpt$bWTP_space){
-        vB_cost <- mBeta[, EstimOpt$strP_cost]
-        mBeta[, EstimOpt$strP_cost] <- 1L
+        ##  Check if the cost parameter is among those that are fixed
+        if(EstimOpt$strP_cost %in% EstimOpt$strP_fixed){
+            iP_cost <- grep(EstimOpt$strP_cost, EstimOpt$strP_fixed)
+            vB_cost <- vP_fixed[iP_cost]
+            vP_fixed[iP_cost] <- 1L
+        } else{
+            vB_cost <- mBeta[, EstimOpt$strP_cost]
+            mBeta[, EstimOpt$strP_cost] <- 1L
+        }
+        
+        ##  Multiply with the parameter vectors
+        if(length(EstimOpt$strP_fixed) > 0){
+            ##  Check if cost is a random parameter
+            if(length(vB_cost) > 1){
+                mB_fixed <- matrix(vB_cost, nrow = length(EstimOpt$strP_fixed),
+                                   ncol = length(vB_cost), byrow = T)
+                mB_fixed <- t(mB_fixed * vP_fixed)
+                
+                ##  IND*DRAWS x NVAR
+                colnames(mB_fixed) <- EstimOpt$strP_fixed
+            } else{
+                ##  1 x NVAR
+                vP_fixed <- vP_fixed * vB_cost
+            }
+        }
+        
         ##  IND*DRAWS x NVAR
         mBeta <- mBeta * vB_cost
         rm(vB_cost)
@@ -88,11 +111,28 @@ fnLogLik <- function(vP){
             mX[, EstimOpt$strP_fixed, drop = F]
         })
         
-        lsU_f <- lapply(lsX_f, function(mX){
-            vU <- as.vector(crossprod(t(mX), vP_fixed))
-            ##  IND*CT
-            return(vU)
-        })
+        ##  Check if the matrix version exists (only in WTP space)
+        if(exists("mB_fixed", envir = environment())){
+            ##  Empty matrix IND*CT x DRAWS
+            lsU_f<- lapply(seq_len(iJ), function(i.x){
+                matrix(NA, nrow(lsX_r[[1L]]), iR)
+            })
+            
+            ##  IND*CT x DRAWS
+            for(n in 1L:iN){
+                vRows <- (1L + ((n - 1L) * iT)):(n * iT)
+                for(j in 1L:iJ){
+                    lsU_f[[j]][vRows, ] <- tcrossprod(lsX_f[[j]][vRows, , drop = F],
+                                                      mB_fixed[(1L + ((n - 1L) * iR)):(n * iR), ])
+                }
+            }
+        } else{
+            lsU_f <- lapply(lsX_f, function(mX){
+                vU <- as.vector(crossprod(t(mX), vP_fixed))
+                ##  IND*CT
+                return(vU)
+            })
+        }
         
         ## IND*CT x DRAWS
         lsU <- mapply(function(mX, mY){mX + mY}, lsU, lsU_f, SIMPLIFY = F)
