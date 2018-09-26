@@ -44,7 +44,7 @@ fnSearchStartingValues <- function(vP, strParNames, lsCluster,
         lsLL_values <- lapply(lsP, function(vP_tmp){
             lsLL <- parLapply(lsCluster, seq_along(lsCluster),
                               function(iClusterCounter){
-                                  fn.log.lik(vP_tmp)
+                                  fnLogLik(vP_tmp)
                               })
             return(sum(Reduce(c, lsLL)))
         })
